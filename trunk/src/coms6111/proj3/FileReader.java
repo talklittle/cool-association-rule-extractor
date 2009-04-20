@@ -1,4 +1,4 @@
-package coms6111_Project3;
+package coms6111.proj3;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
