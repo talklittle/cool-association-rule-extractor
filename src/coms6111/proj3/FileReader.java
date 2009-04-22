@@ -1,4 +1,4 @@
-package coms6111.proj3;
+package coms6111_Project3;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -8,12 +8,29 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.TreeMap; 
+import java.util.TreeSet;
 
 
 
 
 public class FileReader {
+	public static void main(String[] args) throws IOException{
+		List<String> fileList=getFileList(new File("/import/html/6111/20091/Proj3-Data/yahoo/"));
+		String fileContent=null;
+		StringBuffer content = null;
+	        for(String s:fileList){
+	            fileContent=getContentByLocalFile (new File(s));
+	            content=getSplitContent(fileContent);
+	           // for(String c:content){
+	                //System.out.print(c+"\t");
+	            //}
+	            System.out.println(content);
+	            
+	        }
+	    }
 	/**
      * get all documents of one given directory
      * @param file
@@ -58,30 +75,19 @@ public class FileReader {
         }
         return builder.toString();    
     }
-
-    /**
-     * @param args
-     */
-    public static void main(String[] args) throws IOException{
-
-        List<String> fileList=getFileList(new File("/import/html/6111/20091/Proj3-Data/yahoo/"));
-        String fileContent=null;
-        String[] content = null;
-        for(String s:fileList){
-        	//打印文件名
-            System.out.println(s);
-            //文件内容
-            fileContent=getContentByLocalFile (new File(s));
-            //打印文件内容
-            System.out.println(fileContent);
-            //以逗号为单位进行拆分字
-            content=fileContent.split(",");
-            for(String c:content){
-                System.out.print(c+"\t");
+    public static StringBuffer getSplitContent(String filecontent){
+    	StringBuffer output = new StringBuffer(filecontent.length());
+    	for(int i=0;i<=filecontent.length();i++){
+    		if (Character.isLetter(filecontent.charAt(i)) && filecontent.charAt(i)<128) {
+                output.append(Character.toLowerCase(filecontent.charAt(i)));
+          
             }
-            System.out.println();
-            
-        }
+            }
+    		
+    	
+    	return output;
+    	
     }
+   
 
 }
