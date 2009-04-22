@@ -21,15 +21,25 @@ public class FileReader {
 		List<String> fileList=getFileList(new File("/import/html/6111/20091/Proj3-Data/yahoo/"));
 		String fileContent=null;
 		StringBuffer content = null;
-	        for(String s:fileList){
+	    StringTokenizer st;
+		TreeMap<String,Integer> tm=new TreeMap<String,Integer>();
+		for(String s:fileList){
 	            fileContent=getContentByLocalFile (new File(s));
 	            content=getSplitContent(fileContent);
-	           // for(String c:content){
-	                //System.out.print(c+"\t");
-	            //}
-	            System.out.println(content);
+	            st = new StringTokenizer(content.toString());
+	            while (st.hasMoreTokens()){
+	            	String j = st.nextToken();
+	            	if(tm.containsKey(j)){
+	            		tm.put(j,tm.get(j)+1);
+	            	}else{
+	            		tm.put(j, 1);
+	            	}
+	            	}
+	            }
+		TreeMap<String,Integer> resultMap=sortByValue(tm,reverse);
+		
+		
 	            
-	        }
 	    }
 	/**
      * get all documents of one given directory
@@ -77,17 +87,32 @@ public class FileReader {
     }
     public static StringBuffer getSplitContent(String filecontent){
     	StringBuffer output = new StringBuffer(filecontent.length());
-    	for(int i=0;i<=filecontent.length();i++){
+    	for(int i=0;i<filecontent.length();i++){
     		if (Character.isLetter(filecontent.charAt(i)) && filecontent.charAt(i)<128) {
                 output.append(Character.toLowerCase(filecontent.charAt(i)));
-          
-            }
+                }else{
+                	output.append(' ');
+                }
+  
             }
     		
     	
     	return output;
     	
     }
-   
-
+    public static Map sortByValue(Map map , final boolean reverse){
+    	List list = new LinkedList(map.entrySet());            
+    	Collections.sort(list, new Comparator() {      
+    	            public int compare(Object o1, Object o2) {                     
+    	            	if(reverse){  
+    	                        return -((Comparable) ((Map.Entry) (o1)).getValue()).compareTo(((Map.Entry) (o2)).getValue());                      
+    	                        }             
+    	         return ((Comparable) ((Map.Entry) (o1)).getValue()).compareTo(((Map.Entry) (o2)).getValue());                  
+    	         }              
+    	            });            
+    	  Map result = new LinkedHashMap();
+    	  for (Iterator it = list.iterator(); it.hasNext();) {                  
+    		  Map.Entry entry = (Map.Entry) it.next();                
+    	  result.put(entry.getKey(), entry.getValue());              }              return 
+    	result;          } 
 }
