@@ -109,10 +109,9 @@ public class FileReader {
                 }
   
             }
-    		
-    	
-    	return output;
-    	
+            System.out.println();
+            
+        }
     }
     public static Map sortByValue(Map map , final boolean reverse){   
         List list = new LinkedList(map.entrySet());   
