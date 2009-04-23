@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap; 
-import java.util.TreeSet;
 
 
 
@@ -28,6 +27,7 @@ public class FileReader {
 		StringBuffer content = null;
 	    StringTokenizer st;
 		TreeMap<String,Integer> tm=new TreeMap<String,Integer>();
+		Map<String, Integer> resultMap=null;
 		for(String s:fileList){
 	            fileContent=getContentByLocalFile (new File(s));
 	            content=getSplitContent(fileContent);
@@ -41,10 +41,16 @@ public class FileReader {
 	            	}
 	            	}
 		}
-		TreeMap<String,Integer> resultMap=(TreeMap<String, Integer>) sortByValue(tm,true);
-		for(Map.Entry<String,Integer> entry :resultMap.entrySet()) {
-			System.out.println(entry.getKey()+"  "+entry.getValue());
-		}
+		resultMap=sortByValue(tm,true);
+		Set<String> ss=resultMap.keySet();
+		StringTokenizer st1=new StringTokenizer(ss.toString());
+		TreeMap<String,Integer> common = new TreeMap<String,Integer>();
+		for(int i=0;i<397;i++){
+			String h=st1.nextToken();
+			common.put(h, 1);
+			}
+	System.out.println(common.firstKey());
+		
 
 		
 		
@@ -78,7 +84,6 @@ public class FileReader {
     }
     
     /**
-     * 以UTF-8编码方式读取文件内容
      * @param path
      * @return
      * @throws IOException
