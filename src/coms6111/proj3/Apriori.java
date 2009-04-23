@@ -60,4 +60,21 @@ public class Apriori {
 		
 	}
 	
+	public static void aprioriGen() {
+		
+		aprioriGenJoin();
+		aprioriGenPrune();
+	}
+	
+	/**
+	 * 
+	 */
+	public static void aprioriGenJoin() {
+		
+	}
+	
+	public static void aprioriGenPrune() {
+		
+	}
+	
 }
