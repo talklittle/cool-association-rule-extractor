@@ -104,32 +104,25 @@ public class FileReader {
     	for(int i=0;i<filecontent.length();i++){
     		if (Character.isLetter(filecontent.charAt(i)) && filecontent.charAt(i)<128) {
                 output.append(Character.toLowerCase(filecontent.charAt(i)));
-                }else{
-                	output.append(' ');
-                }
-  
+            }else{
+            	output.append(' ');
             }
-            System.out.println();
-            return output;
-            
         }
-
-
-    public static Map sortByValue(Map map , final boolean reverse){   
-        List list = new LinkedList(map.entrySet());   
-        Collections.sort(list, new Comparator() {   
-            public int compare(Object o1, Object o2) {   
+    	return output;
+    }
+    public static Map<String, Integer> sortByValue(Map<String, Integer> map , final boolean reverse){   
+        List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(map.entrySet());   
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {   
+            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {   
                 if(reverse){   
-                    return -((Comparable) ((Map.Entry) (o1)).getValue())   
-                    .compareTo(((Map.Entry) (o2)).getValue());   
+                    return -o1.getValue().compareTo(o2.getValue());   
                 }   
-                return ((Comparable) ((Map.Entry) (o1)).getValue())   
-                        .compareTo(((Map.Entry) (o2)).getValue());   
+                return o1.getValue().compareTo(o2.getValue());   
             }   
         });   
-        Map result = new LinkedHashMap();   
-        for (Iterator it = list.iterator(); it.hasNext();) {   
-            Map.Entry entry = (Map.Entry) it.next();   
+        Map<String, Integer> result = new LinkedHashMap<String, Integer>();   
+        for (Iterator<Map.Entry<String, Integer>> it = list.iterator(); it.hasNext();) {   
+            Map.Entry<String, Integer> entry = it.next();   
             result.put(entry.getKey(), entry.getValue());   
         }   
         return result;   
