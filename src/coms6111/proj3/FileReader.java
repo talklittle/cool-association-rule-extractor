@@ -44,21 +44,8 @@ public class FileReader {
 		}
 		resultMap=sortByValue(tm,true);
 		Set<String> ss=resultMap.keySet();
-		String[] sortedCommon = new String[397];
-//		StringTokenizer st1=new StringTokenizer(ss.toString());
-//		TreeMap<String,Integer> common = new TreeMap<String,Integer>();
-		int i = 0;
-		for(Iterator<String> it = ss.iterator(); it.hasNext() && i < 397; i++){
-			String h=it.next();
-//			System.out.print(h + " ");
-			sortedCommon[i] = h;
-	    }
-		if (i < 397) {
-			System.err.println("Did not find 397 words!");
-			System.exit(1);
-		}
-		
-		Arrays.sort(sortedCommon);
+
+				Arrays.sort(sortedCommon);
 		for (String s : sortedCommon) {
 			System.out.print(s + " ");
 		}
