@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -39,23 +40,30 @@ public class FileReader {
 	            	}else{
 	            		tm.put(j, 1);
 	            	}
-	            	}
+	            }
 		}
 		resultMap=sortByValue(tm,true);
 		Set<String> ss=resultMap.keySet();
-		StringTokenizer st1=new StringTokenizer(ss.toString());
-		TreeMap<String,Integer> common = new TreeMap<String,Integer>();
-		for(int i=0;i<397;i++){
-			String h=st1.nextToken();
-			common.put(h, 1);
-			}
-	System.out.println(common.firstKey());
-		
-
-		
-		
-	            
+		String[] sortedCommon = new String[397];
+//		StringTokenizer st1=new StringTokenizer(ss.toString());
+//		TreeMap<String,Integer> common = new TreeMap<String,Integer>();
+		int i = 0;
+		for(Iterator<String> it = ss.iterator(); it.hasNext() && i < 397; i++){
+			String h=it.next();
+//			System.out.print(h + " ");
+			sortedCommon[i] = h;
 	    }
+		if (i < 397) {
+			System.err.println("Did not find 397 words!");
+			System.exit(1);
+		}
+		
+		Arrays.sort(sortedCommon);
+		for (String s : sortedCommon) {
+			System.out.print(s + " ");
+		}
+	}
+	
 	/**
      * get all documents of one given directory
      * @param file
