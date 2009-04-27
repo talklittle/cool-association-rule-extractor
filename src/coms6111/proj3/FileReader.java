@@ -23,15 +23,14 @@ import java.util.TreeMap;
 
 public class FileReader {
 	public static void main(String[] args) throws IOException{
-		System.out.println("please input the name of data set:");
-		InputStreamReader reader=new InputStreamReader(System.in);
-		BufferedReader output = new BufferedReader(reader);
 		String url=null;
-		if(output.equals("Yahoo")){
+		if(args[0].equals("Yahoo")){
 			url="/import/html/6111/20091/Proj3-Data/yahoo/";
 			}
-		else if(output.equals("20newsgroups")){
+		else if(args[0].equals("20newsgroups")){
 			url="/import/html/6111/20091/Proj3-Data/20newsgroups/";
+		} else {
+			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
 		}
 		List<String> fileList=getFileList(new File(url));
 		String fileContent=null;
