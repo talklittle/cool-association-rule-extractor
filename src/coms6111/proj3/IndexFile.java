@@ -14,7 +14,7 @@ public class IndexFile {
         
     }
 
-    public static void main(String url) {
+    public static void main(String args[]) {
     	String a="/import/html/6111/20091/Proj3-Data/yahoo/";
         indexfile(a);
     }

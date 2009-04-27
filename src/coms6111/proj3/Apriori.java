@@ -19,10 +19,15 @@ import java.util.*;
 public class Apriori {
 	
 	private double myMinsup, myMinconf;
+	private SimpleTrie<Item> Ck;
+	private HashSet<List<Item>> kMin2Prefixes; // Keep track of these for quick lookups during aprioriGen
+	private int k; // The current iteration of the algorithm
 	
 	public Apriori(double minsup, double minconf) {
 		myMinsup = minsup;
 		myMinconf = minconf;
+		Ck = new SimpleTrie<Item>(null);
+		kMin2Prefixes = new HashSet<List<Item>>();
 	}
 
 	/**
@@ -30,50 +35,83 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public HashSet<Itemset> doApriori(Collection<Itemset> large1Itemsets) {
-		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
-		ArrayList<Set<Itemset>> C = new ArrayList<Set<Itemset>>(); // Candidate Large itemsets
+	public HashSet<SortedSet<Item>> doApriori() {
+		Set<SortedSet<Item>> large1Itemsets = getLarge1Itemsets();
+		
+		ArrayList<Set<SortedSet<Item>>> L = new ArrayList<Set<SortedSet<Item>>>(); // Large itemsets
+		ArrayList<Set<SortedSet<Item>>> C = new ArrayList<Set<SortedSet<Item>>>(); // Candidate Large itemsets
 				
-		L.append(new HashSet<Itemset>()); // The 0-itemsets; an empty set
-		L.append(large1Itemsets); // 1-itemsets; gotten from external
+		L.add(new HashSet<SortedSet<Item>>()); // The 0-itemsets; an empty set
+		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
-		C.append(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
-		C.append(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
+		C.add(new HashSet<SortedSet<Item>>()); // Candidate 0-itemsets; empty set
+		C.add(new HashSet<SortedSet<Item>>()); // Candidate 1-itemsets; empty set
 		
-		for (int k = 2; L[k-1].length > 0; k++) {
-			C[k] = aprioriGen(L[k-1]); // New candidates
+		for (k = 2; L.get(k-1).size() > 0; k++) {
+			//C[k] = aprioriGen(L[k-1]); // New candidates
+			aprioriGen(L.get(k-1)); // Will update Ck
 			for (Transaction t : D) {
 				C[t] = subset(C[k], t); // Candidates contained in t
 				for (Candidate c : C[t]) {
 					c.count++;
 				}
 			}
-			L.append(new HashSet<Itemset>()); // Set of k-itemsets
-			for (Itemset c : C[k]) {
+			L.append(new HashSet<SortedSet<Item>>()); // Set of k-itemsets
+			for (SortedSet<Item> c : C[k]) {
 				L.get(k).add(c);
 			}
 		}
 		
 	}
 	
-	public HashSet<Itemset> subset(Set<Itemset> ck, Transaction t) {
+	public HashSet<SortedSet<Item>> subset(Set<SortedSet<Item>> ck, Transaction t) {
 		
 	}
 	
-	public static void aprioriGen() {
+	public void aprioriGen(Collection<SortedSet<Item>> prevCandidates) {
 		
-		aprioriGenJoin();
+		aprioriGenJoin(prevCandidates);
 		aprioriGenPrune();
 	}
 	
-	/**
-	 * 
-	 */
-	public static void aprioriGenJoin() {
+
+	public void aprioriGenJoin(Collection<SortedSet<Item>> prevCandidates) {
+		ArrayList<Item> tmpItemList;
+		ArrayList<SortedSet<Item>> newCandidates = new ArrayList<SortedSet<Item>>(); 
 		
+		for (Iterator<List<Item>> it = kMin2Prefixes.iterator(); it.hasNext(); /* */ ) {
+			List<Item> prevPrefix = it.next();
+			SimpleTrie<Item> sharedNode = Ck.get(prevPrefix);
+			if (sharedNode.children.size() > 1) {
+				// This rocks! The itemsets will be combined.
+				// Combine each child with the children that come after it
+				Collection<SimpleTrie<Item>> leafNodes = sharedNode.children.values();
+				for (Iterator<SimpleTrie<Item>> itj = leafNodes.iterator(); itj.hasNext(); /* */ ) {
+					SimpleTrie<Item> leafj = itj.next();
+					if (leafj == sharedNode.children.get(sharedNode.children.lastKey()))
+						break;
+					Collection<SimpleTrie<Item>> biggerChildren = sharedNode.children.tailMap(leafj.path).values();
+					for (Iterator<SimpleTrie<Item>> itk = biggerChildren.iterator(); itk.hasNext(); /* */ ) {
+						SimpleTrie<Item> leafk = itk.next();
+						// XXX check here if the minsup???
+						
+						List<Item> newleaf = new ArrayList<Item>();
+						newleaf.addAll(sharedNode.path);
+						newleaf.add(leafj.value);
+						newleaf.add(leafk.value);
+						
+						try {
+							Ck.addToLeaf(newleaf);
+						} catch (Exception e) {
+							System.err.println("Skipped leaf");
+						}
+					}
+				}
+			}
+		}
 	}
 	
-	public static void aprioriGenPrune() {
+	public void aprioriGenPrune() {
 		
 	}
 	
