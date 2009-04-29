@@ -25,12 +25,12 @@ public class Itemset implements Comparable<Itemset> {
 		Itemset returnMe;
 		int lastRange = ranges.length - 1;
 		// The last bit is in a range by itself, so chop off the last range
-		if (Constants.singleBit.contains(ranges[lastRange])) {
+		if (Bits.singleBit.contains(ranges[lastRange])) {
 			returnMe = new Itemset(this, ranges.length-1);
 		} else {
 			returnMe = new Itemset(this, ranges.length);
 			// Chop off the final bit using XOR
-			returnMe.ranges[ranges.length-1] ^= Constants.lastBit.get(ranges[ranges.length-1]);
+			returnMe.ranges[ranges.length-1] ^= Bits.lastBit.get(ranges[ranges.length-1]);
 		}
 		return returnMe;
 	}
