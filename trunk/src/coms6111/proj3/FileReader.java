@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -54,12 +55,9 @@ public class FileReader {
 		resultMap=sortByValue(tm,true);
 		Set<String> ss=resultMap.keySet();
         String[] sortedCommon = new String[397];
-//      StringTokenizer st1=new StringTokenizer(ss.toString());
-//      TreeMap<String,Integer> common = new TreeMap<String,Integer>();
         int i = 0;
         for(Iterator<String> it = ss.iterator(); it.hasNext() && i < 397; i++) {
         	String h=it.next();
-//          System.out.print(h + " ");
             sortedCommon[i] = h;
         }
         if (i < 397) {
@@ -70,8 +68,34 @@ public class FileReader {
         Arrays.sort(sortedCommon);
 
 		for (String s : sortedCommon) {
-			System.out.print(s + " ");
+			System.out.println(s);
 		}
+		int x= resultMap.size()-397;
+		String[] sortedWords = new String[x];
+		for(Iterator<String> it = ss.iterator();it.hasNext()&& i<x;i++){
+			String l=it.next();
+			while(!sortedCommon.equals(l)){
+				sortedWords[i]=l;
+			}
+		}
+		Arrays.sort(sortedWords);
+		for(String g:sortedWords){
+			System.out.println(g);
+		}
+		HashMap<String, Integer> wordsPosition = wordsFile(sortedWords);
+		HashMap<String, Integer> documentsPosition= documentsFile(fileList);
+		//HashMap<Integer, List<Integer>> wordsDocPosition = wordDocumentsFile(sortedWords,fileList);
+		HashMap<Integer, List<Integer>> wdp= new HashMap<Integer, List<Integer>>();
+		List<Integer> result= null;
+    	for(int b=0;b<sortedWords.length;b++){
+    		for(String s: fileList){
+    			while(s.contains(sortedWords[b])){
+    				result.add(documentsPosition.get(s));
+    				}
+    			}
+    		wdp.put(wordsPosition.get(sortedWords[b]),result);
+    		}
+		
 	}
 	
 	/**
@@ -145,6 +169,22 @@ public class FileReader {
         }   
         return result;   
   
-    }  
+    } 
+    public static HashMap<String, Integer> wordsFile(String[] wordFile){
+    	HashMap<String, Integer> wordsPosition = new HashMap<String, Integer>();
+    	for(int i=0;i<wordFile.length;i++){
+    		wordsPosition.put(wordFile[i], i);
+    	}
+    	return wordsPosition;
+    	}
+    public static HashMap<String, Integer> documentsFile(List<String> fileList){
+    	HashMap<String, Integer> documentsPosition = new HashMap<String, Integer>();
+    	for(int i=0;i<fileList.size();i++){
+    		documentsPosition.put(fileList.get(i), i);
+    	}
+    	return documentsPosition;
+    	
+    }
+   
 
 }
