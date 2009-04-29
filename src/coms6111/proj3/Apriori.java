@@ -69,13 +69,6 @@ public class Apriori {
 	}
 	
 	public void aprioriGen(Collection<SortedSet<Item>> prevCandidates) {
-		
-		aprioriGenJoin(prevCandidates);
-		aprioriGenPrune();
-	}
-	
-
-	public void aprioriGenJoin(Collection<SortedSet<Item>> prevCandidates) {
 		ArrayList<Item> tmpItemList;
 		ArrayList<SortedSet<Item>> newCandidates = new ArrayList<SortedSet<Item>>(); 
 		
@@ -111,8 +104,10 @@ public class Apriori {
 		}
 	}
 	
-	public void aprioriGenPrune() {
-		
+	public void aprioriGenPrune(ItemsetTrie trie, int depth) {
+		for (Itemset leaf : trie.leaves) {
+			
+		}
 	}
 	
 }
