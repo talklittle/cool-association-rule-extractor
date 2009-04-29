@@ -74,7 +74,7 @@ public class FileReader {
 		String[] sortedWords = new String[x];
 		for(Iterator<String> it = ss.iterator();it.hasNext()&& i<x;i++){
 			String l=it.next();
-			while(!sortedCommon.equals(l)){
+			if (!sortedCommon.equals(l)){
 				sortedWords[i]=l;
 			}
 		}
@@ -89,12 +89,15 @@ public class FileReader {
 		List<Integer> result= null;
     	for(int b=0;b<sortedWords.length;b++){
     		for(String s: fileList){
-    			while(s.contains(sortedWords[b])){
+    			if (s.contains(sortedWords[b])){
     				result.add(documentsPosition.get(s));
     				}
     			}
     		wdp.put(wordsPosition.get(sortedWords[b]),result);
     		}
+    	for (Iterator<Integer> it = wdp.keySet().iterator(); it.hasNext(); /* */) {
+    		System.out.println("" + it.next());
+    	}
 		
 	}
 	
@@ -106,21 +109,23 @@ public class FileReader {
     public static List<String> getFileList(File file) {
         List<String> result = new ArrayList<String>();
         if (!file.isDirectory()) {
-            System.out.println(file.getAbsolutePath());
+//            System.out.println(file.getAbsolutePath());
             result.add(file.getAbsolutePath());
         } else {
-             File[] directoryList=file.listFiles(new FileFilter(){
-                    public boolean accept(File file) {
-                        if (file.isFile() && file.getName().indexOf("txt") > -1) {
-                            return true;
-                        } else {
-                            return false;
-                        }
+        	System.out.println("dir: " + file.getAbsolutePath());
+            File[] directoryList=file.listFiles(new FileFilter(){
+                    public boolean accept(File f) {
+//                        if (f.isFile() && f.getName().indexOf("txt") > -1) {
+//                            return true;
+//                        } else {
+//                            return false;
+//                        }
+                    	return true;
                     }
-             });  
-             for(int i=0;i<directoryList.length;i++){ 
-                 result.add(directoryList[i].getAbsolutePath());
-             }
+            });  
+            for(int i=0;i<directoryList.length;i++){ 
+                result.addAll(getFileList(directoryList[i]));
+            }
         }
         return result;
     }
