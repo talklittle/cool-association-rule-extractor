@@ -3,11 +3,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.StringTokenizer;
 import java.util.TreeMap; 
 import java.util.TreeSet;
@@ -33,38 +34,48 @@ public class FileReader {
 			url="/import/html/6111/20091/Proj3-Data/20newsgroups/";
 		} else {
 			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
+			System.exit(1);
 		}
+		
 		List<String> fileList=getFileList(new File(url));
-		HashMap<String, Integer> documentsPosition= documentsFile(fileList);
+		
+		// Mapping from a filename to its id
+		HashMap<String, Integer> documentsPosition= initDocumentsFile(fileList);
+		// Mapping from a word (String) to its id
 		HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
-		HashMap<Integer, List<Integer>> wordDoc=new HashMap<Integer, List<Integer>>();
+		// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
+		HashMap<Integer, Itemset> wordDoc=new HashMap<Integer, Itemset>();
+		
 		String fileContent=null;
 		StringBuffer content = null;
 	    StringTokenizer st;
-		TreeMap<String,Integer> tm=new TreeMap<String,Integer>();
+		TreeMap<String,Integer> sortedWords=new TreeMap<String,Integer>();
 		Map<String, Integer> resultMap=null;
-		List<Integer> result=null;
-		int p=0;
-		for(String s:fileList){
-	            fileContent=getContentByLocalFile (new File(s));
+		SortedSet<Integer> wordsInDoc;
+		int wordsPosIndex=0;
+		for(String aFile:fileList){
+	            fileContent=getContentByLocalFile (new File(aFile));
 	            content=getSplitContent(fileContent);
 	            st = new StringTokenizer(content.toString());
+	            wordsInDoc = new TreeSet<Integer>();
 	            while (st.hasMoreTokens()){
 	            	String j = st.nextToken();
-	            	if(tm.containsKey(j)){
-	            		tm.put(j,tm.get(j)+1);
+	            	if(sortedWords.containsKey(j)){
+	            		sortedWords.put(j,sortedWords.get(j)+1);
 	            	}else{
-	            		wordsPosition.put(j, p);
-	            	    p++;
-	            		tm.put(j, 1);
+	            		sortedWords.put(j, 1);
+	            		// Give newly found word a new word position
+	            		wordsPosition.put(j, wordsPosIndex);
+	            	    wordsPosIndex++;
 	            	}
-	            	result.add(documentsPosition.get(s));
-            		wordDoc.put(wordsPosition.get(j), result);
-
+	            	wordsInDoc.add(documentsPosition.get(aFile));
+            		wordDoc.put(wordsPosition.get(j), new Itemset(wordsInDoc));
 	            }
 		}
-		resultMap=sortByValue(tm,true);
-		Set<String> ss=resultMap.keySet();
+		
+		// Find the COMMON words
+		resultMap=sortByValue(sortedWords,true);
+		Set<String> ss = resultMap.keySet();
         TreeSet<String> sortedCommon = new TreeSet<String>();
         int i = 0;
         for(Iterator<String> it = ss.iterator(); it.hasNext() && i < 397; i++) {
@@ -75,25 +86,34 @@ public class FileReader {
             System.err.println("Did not find 397 words!");
             System.exit(1);
         }
-               
+        
+        File COMMON = new File("COMMON");
+        if (COMMON.exists())
+        	COMMON.delete();
+        COMMON.createNewFile();
+        FileWriter writer = new FileWriter(COMMON);
         for (Iterator<String> it = sortedCommon.iterator(); it.hasNext(); /* */) {
         	String s = it.next();
-        	System.out.println(s);
+        	// Remove the common word from WORDS
+        	sortedWords.remove(s);
+        	
+        	// TODO remove the word from all Transactions
+        	
+        	// Output to file COMMON
+        	writer.write(s + "\n");
 		}
-		int x= resultMap.size()-397;
-		String[] sortedWords = new String[x];
-		// Add the words to sortedWords if they are not in COMMON
-		for(Iterator<String> it = ss.iterator();it.hasNext()&& i<x;i++){
-			String l=it.next();
-			if (!sortedCommon.contains(l)){
-				sortedWords[i]=l;
-			}
+        writer.close();
+        
+		// Output the sorted WORDS (excluding COMMON)
+        File WORDS = new File("WORDS");
+        if (WORDS.exists())
+        	WORDS.delete();
+        WORDS.createNewFile();
+        writer = new FileWriter(WORDS);
+        for(Iterator<String> it = sortedWords.keySet().iterator(); it.hasNext(); /* */) {
+			writer.write(it.next() + "\n");
 		}
-		// Print the sorted words
-		for(Iterator<String> it = sortedCommon.iterator(); it.hasNext(); /* */) {
-			String g = it.next();
-			System.out.println(g);
-		}
+        writer.close();
 		
 	}
 	
@@ -171,14 +191,13 @@ public class FileReader {
         return result;   
   
     } 
-    public static HashMap<String, Integer> wordsFile(String[] wordFile){
-    	HashMap<String, Integer> wordsPosition = new HashMap<String, Integer>();
-    	for(int i=0;i<wordFile.length;i++){
-    		wordsPosition.put(wordFile[i], i);
-    	}
-    	return wordsPosition;
-    	}
-    public static HashMap<String, Integer> documentsFile(List<String> fileList){
+
+    /**
+     * Initialize the Map for associating a filename with an id.
+     * @param fileList
+     * @return
+     */
+    public static HashMap<String, Integer> initDocumentsFile(List<String> fileList){
     	HashMap<String, Integer> documentsPosition = new HashMap<String, Integer>();
     	for(int i=0;i<fileList.size();i++){
     		documentsPosition.put(fileList.get(i), i);
@@ -186,6 +205,5 @@ public class FileReader {
     	return documentsPosition;
     	
     }
-   
 
 }
