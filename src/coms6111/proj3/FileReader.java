@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap; 
+import java.util.TreeSet;
 
 
 
@@ -64,32 +65,33 @@ public class FileReader {
 		}
 		resultMap=sortByValue(tm,true);
 		Set<String> ss=resultMap.keySet();
-        String[] sortedCommon = new String[397];
+        TreeSet<String> sortedCommon = new TreeSet<String>();
         int i = 0;
         for(Iterator<String> it = ss.iterator(); it.hasNext() && i < 397; i++) {
         	String h=it.next();
-            sortedCommon[i] = h;
+            sortedCommon.add(h);
         }
         if (i < 397) {
             System.err.println("Did not find 397 words!");
             System.exit(1);
         }
                
-        Arrays.sort(sortedCommon);
-
-		for (String s : sortedCommon) {
-			System.out.println(s);
+        for (Iterator<String> it = sortedCommon.iterator(); it.hasNext(); /* */) {
+        	String s = it.next();
+        	System.out.println(s);
 		}
 		int x= resultMap.size()-397;
 		String[] sortedWords = new String[x];
+		// Add the words to sortedWords if they are not in COMMON
 		for(Iterator<String> it = ss.iterator();it.hasNext()&& i<x;i++){
 			String l=it.next();
-			if (!sortedCommon.equals(l)){
+			if (!sortedCommon.contains(l)){
 				sortedWords[i]=l;
 			}
 		}
-		Arrays.sort(sortedWords);
-		for(String g:sortedWords){
+		// Print the sorted words
+		for(Iterator<String> it = sortedCommon.iterator(); it.hasNext(); /* */) {
+			String g = it.next();
 			System.out.println(g);
 		}
 		
