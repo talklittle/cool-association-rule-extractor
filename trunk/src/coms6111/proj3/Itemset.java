@@ -1,12 +1,38 @@
 package coms6111.proj3;
 
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 public class Itemset implements Comparable<Itemset> {
 	public int[] ranges;
 	public int[] words; // words[] and ranges[] are same length
 	
+	public Itemset(SortedSet<Integer> wordPositions) {
+		TreeMap<Integer, Integer> rangesWords = new TreeMap<Integer, Integer>();
+		int rangeIndex, bitmask;
+		for (int i : wordPositions) {
+			rangeIndex = posToRange(i);
+			bitmask = posToBitmask(i);
+			if (rangesWords.containsKey(rangeIndex)) {
+				rangesWords.put(rangeIndex, rangesWords.get(rangeIndex) | bitmask);
+			} else {
+				rangesWords.put(rangeIndex, bitmask);
+			}
+		}
+		ranges = new int[rangesWords.size()];
+		words = new int[rangesWords.size()];
+		int i = 0;
+		for (Iterator<Integer> it = rangesWords.keySet().iterator(); it.hasNext(); /* */) {
+			int num = it.next();
+			ranges[i] = num;
+			words[i] = rangesWords.get(num);
+			i++;
+		}
+	}
+	
+	public Itemset(int[] newRanges, int[] newWords) {
+		ranges = newRanges;
+		words = newWords;
+	}
 	
 	public Itemset(Itemset other, int newLength) {
 		ranges = Arrays.copyOf(other.ranges, newLength);
@@ -14,11 +40,13 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	public String[] getWords(HashMap<Integer, String> wordsRev) {
-		
+		// FIXME
+		return null;
 	}
 	
 	public String[] getDocs(HashMap<Integer, String> docsRev) {
-		
+		// FIXME
+		return null;
 	}
 	
 	public Itemset chopLastBit() {
@@ -30,9 +58,34 @@ public class Itemset implements Comparable<Itemset> {
 		} else {
 			returnMe = new Itemset(this, ranges.length);
 			// Chop off the final bit using XOR
-			returnMe.ranges[ranges.length-1] ^= Bits.lastBit.get(ranges[ranges.length-1]);
+			returnMe.ranges[ranges.length-1] ^= Bits.getLastBit(ranges[ranges.length-1]);
 		}
 		return returnMe;
+	}
+	
+	/**
+	 * Find the range id of the given bit index.
+	 * This is very simple. Each range contains 32 bits, so just
+	 * count bits starting from the left.
+	 * @param i
+	 * @return
+	 */
+	public static int posToRange(int i) {
+		if (i % 32 != 0)
+			return (i/32) + 1;
+		else
+			return i/32;
+	}
+	
+	/**
+	 * Find the bit within the range of the given bit index.
+	 * This is very simple. Just get rid of all preceding ranges (mod 32)
+	 * and then return the binary number you are left with.
+	 * @param i
+	 * @return
+	 */
+	public static int posToBitmask(int i) {
+		return 0x80000000 >> (i % 32);
 	}
 	
 	public boolean equals(Itemset o) {
