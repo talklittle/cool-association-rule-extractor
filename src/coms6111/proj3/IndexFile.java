@@ -18,17 +18,5 @@ public class IndexFile {
     	String a="/import/html/6111/20091/Proj3-Data/yahoo/";
         indexfile(a);
     }
-
-	//static Runtime r = Runtime.getRuntime();
-	
-	//public static void test(){
-		//try {
-			//r.exec("echo");
-			//glimpseindex yahoo;
-			//glimpse dolphins;
-		//} catch (IOException e) {
-			//System.err.println(e.getLocalizedMessage());
-		//}
-	//}	
 	
 }
