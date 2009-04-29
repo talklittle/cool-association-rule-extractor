@@ -34,11 +34,16 @@ public class FileReader {
 			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
 		}
 		List<String> fileList=getFileList(new File(url));
+		HashMap<String, Integer> documentsPosition= documentsFile(fileList);
+		HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
+		HashMap<Integer, List<Integer>> wordDoc=new HashMap<Integer, List<Integer>>();
 		String fileContent=null;
 		StringBuffer content = null;
 	    StringTokenizer st;
 		TreeMap<String,Integer> tm=new TreeMap<String,Integer>();
 		Map<String, Integer> resultMap=null;
+		List<Integer> result=null;
+		int p=0;
 		for(String s:fileList){
 	            fileContent=getContentByLocalFile (new File(s));
 	            content=getSplitContent(fileContent);
@@ -48,8 +53,13 @@ public class FileReader {
 	            	if(tm.containsKey(j)){
 	            		tm.put(j,tm.get(j)+1);
 	            	}else{
+	            		wordsPosition.put(j, p);
+	            	    p++;
 	            		tm.put(j, 1);
 	            	}
+	            	result.add(documentsPosition.get(s));
+            		wordDoc.put(wordsPosition.get(j), result);
+
 	            }
 		}
 		resultMap=sortByValue(tm,true);
@@ -82,22 +92,6 @@ public class FileReader {
 		for(String g:sortedWords){
 			System.out.println(g);
 		}
-		HashMap<String, Integer> wordsPosition = wordsFile(sortedWords);
-		HashMap<String, Integer> documentsPosition= documentsFile(fileList);
-		//HashMap<Integer, List<Integer>> wordsDocPosition = wordDocumentsFile(sortedWords,fileList);
-		HashMap<Integer, List<Integer>> wdp= new HashMap<Integer, List<Integer>>();
-		List<Integer> result= null;
-    	for(int b=0;b<sortedWords.length;b++){
-    		for(String s: fileList){
-    			if (s.contains(sortedWords[b])){
-    				result.add(documentsPosition.get(s));
-    				}
-    			}
-    		wdp.put(wordsPosition.get(sortedWords[b]),result);
-    		}
-    	for (Iterator<Integer> it = wdp.keySet().iterator(); it.hasNext(); /* */) {
-    		System.out.println("" + it.next());
-    	}
 		
 	}
 	
@@ -112,7 +106,7 @@ public class FileReader {
 //            System.out.println(file.getAbsolutePath());
             result.add(file.getAbsolutePath());
         } else {
-        	System.out.println("dir: " + file.getAbsolutePath());
+//        	System.out.println("dir: " + file.getAbsolutePath());
             File[] directoryList=file.listFiles(new FileFilter(){
                     public boolean accept(File f) {
 //                        if (f.isFile() && f.getName().indexOf("txt") > -1) {
