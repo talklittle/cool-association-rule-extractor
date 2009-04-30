@@ -23,8 +23,16 @@ public class Apriori {
 	private int k; // The current iteration of the algorithm
 	
 	private HashMap<String, Integer> documentsPosition;
+	private HashMap<String, Integer> wordsPosition;
+	private HashMap<Integer, Itemset> wordDocs;
 	
-	public Apriori(double newMinsup, double newMinconf) {
+	public Apriori(HashMap<String, Integer> newDocumentsPosition,
+			       HashMap<String, Integer> newWordsPosition,
+			       HashMap<Integer, Itemset> newWordDocs,
+			       double newMinsup, double newMinconf) {
+		documentsPosition = newDocumentsPosition;
+		wordsPosition = newWordsPosition;
+		wordDocs = newWordDocs;
 		minsup = newMinsup;
 		minconf = newMinconf;
 		Ck = new TreeSet<Itemset>();
@@ -44,6 +52,7 @@ public class Apriori {
 		L.add(new HashSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
+		// XXX these 2 needed?
 		C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
 		C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
 		
@@ -58,11 +67,13 @@ public class Apriori {
 					c.count++;
 				}
 			}
+			HashSet<Itemset> Lk = new HashSet<Itemset>();
 			L.append(new HashSet<Itemset>()); // Set of k-itemsets
 //			for (Itemset c : C[k]) {
 			for (ItemsetTrie c : leaves) {
-				L.get(k).add(c);
+				Lk.add(c);
 			}
+			L.append(Lk);
 		}
 		
 	}
