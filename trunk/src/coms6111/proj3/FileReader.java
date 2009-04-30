@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -25,6 +26,15 @@ import java.util.TreeSet;
 
 
 public class FileReader {
+	// Mapping from a filename to its id
+	static HashMap<String, Integer> documentsPosition;
+	// Mapping from a word (String) to its id
+	static HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
+	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
+	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
+	
+	static int minconf, minsup;
+	
 	public static void main(String[] args) throws IOException{
 		String url=null;
 		if(args[0].equals("Yahoo")){
@@ -39,12 +49,7 @@ public class FileReader {
 		
 		List<String> fileList=getFileList(new File(url));
 		
-		// Mapping from a filename to its id
-		HashMap<String, Integer> documentsPosition= initDocumentsFile(fileList);
-		// Mapping from a word (String) to its id
-		HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
-		// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
-		HashMap<Integer, Itemset> wordDoc=new HashMap<Integer, Itemset>();
+		documentsPosition= initDocumentsFile(fileList);
 		
 		String fileContent=null;
 		StringBuffer content = null;
@@ -69,7 +74,7 @@ public class FileReader {
 	            	    wordsPosIndex++;
 	            	}
 	            	wordsInDoc.add(documentsPosition.get(aFile));
-            		wordDoc.put(wordsPosition.get(j), new Itemset(wordsInDoc));
+            		wordDocs.put(wordsPosition.get(j), new Itemset(wordsInDoc));
 	            }
 		}
 		
@@ -115,6 +120,16 @@ public class FileReader {
 		}
         writer.close();
 		
+        runApriori();
+	}
+	
+	public static void runApriori() {
+		Apriori apriori = new Apriori(documentsPosition,
+									  wordsPosition,
+									  wordDocs,
+									  minconf,
+									  minsup);
+		HashSet<Itemset> largeItemsets = apriori.doApriori();
 	}
 	
 	/**
