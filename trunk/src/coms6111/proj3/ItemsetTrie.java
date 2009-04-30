@@ -69,6 +69,10 @@ public class ItemsetTrie implements Comparable<ItemsetTrie> {
 		}
 	}
 	
+	public ItemsetTrie parent() {
+		return parent;
+	}
+	
 	public int compareTo(ItemsetTrie o) {
 		ItemsetTrie myTrie, otherTrie;
 		for (myTrie = this; myTrie.value == null; myTrie = myTrie.children.first())
