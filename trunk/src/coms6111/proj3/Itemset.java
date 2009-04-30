@@ -64,6 +64,55 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	/**
+	 * Add a new item to a copy of the Itemset and return the copy.
+	 * @param range Range id of new item
+	 * @param bitmask Bitmask (single bit set) of the new item
+	 * @return Copy of this Itemset with new item inserted
+	 */
+	public Itemset addAndCopy(int range, int bitmask) {
+		int newRangeLength = ranges.length;
+		boolean found = false;
+		int[] newRanges, newWords;
+		// See if the new bit falls into existing range
+		// TODO change this to binary search
+		for (int i = 0; i < ranges.length; i++) {
+			if (ranges[i] == range) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			newRangeLength++;
+		}
+
+		// Insert the new item where it should go
+		newRanges = new int[newRangeLength];
+		newWords = new int[newRangeLength];
+		boolean inserted = false;
+		int oldI = 0;
+		for (int i = 0; i < newRangeLength; i++) {
+			// Use this condition to find position to insert range id
+			if (!inserted && ranges[oldI] >= range) {
+				newRanges[i] = range;
+				if (ranges[oldI] == range) {
+					// New bit goes into existing range
+					newWords[i] = words[oldI++] | bitmask;
+				} else {
+					// New bit goes into a new range
+					newWords[i] = bitmask;
+				}
+				inserted = true;
+			} else {
+				newRanges[i] = ranges[oldI];
+				newWords[i] = words[oldI];
+				oldI++;
+			}
+		}
+		
+		return new Itemset(newRanges, newWords);
+	}
+	
+	/**
 	 * Find the range id of the given bit index.
 	 * This is very simple. Each range contains 32 bits, so just
 	 * count bits starting from the left.
@@ -89,6 +138,8 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	public boolean equals(Itemset o) {
+		if (o == null)
+			return false;
 		if (ranges.length != o.ranges.length || words.length != o.words.length)
 			return false;
 		// Compares 32 bits at a time :)

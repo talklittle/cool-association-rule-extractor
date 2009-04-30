@@ -18,16 +18,16 @@ import java.util.*;
  */
 public class Apriori {
 	
-	private double myMinsup, myMinconf;
-	private SimpleTrie<Item> Ck;
-	private HashSet<List<Item>> kMin2Prefixes; // Keep track of these for quick lookups during aprioriGen
+	private double minsup, minconf;
+	private TreeSet<Itemset> Ck;
 	private int k; // The current iteration of the algorithm
 	
-	public Apriori(double minsup, double minconf) {
-		myMinsup = minsup;
-		myMinconf = minconf;
-		Ck = new SimpleTrie<Item>(null);
-		kMin2Prefixes = new HashSet<List<Item>>();
+	private HashMap<String, Integer> documentsPosition;
+	
+	public Apriori(double newMinsup, double newMinconf) {
+		minsup = newMinsup;
+		minconf = newMinconf;
+		Ck = new TreeSet<Itemset>();
 	}
 
 	/**
@@ -35,77 +35,91 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public HashSet<SortedSet<Item>> doApriori() {
-		Set<SortedSet<Item>> large1Itemsets = getLarge1Itemsets();
+	public HashSet<Itemset> doApriori() {
+		Set<Itemset> large1Itemsets = getLarge1Itemsets();
 		
-		ArrayList<Set<SortedSet<Item>>> L = new ArrayList<Set<SortedSet<Item>>>(); // Large itemsets
-		ArrayList<Set<SortedSet<Item>>> C = new ArrayList<Set<SortedSet<Item>>>(); // Candidate Large itemsets
+		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
+		ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
 				
-		L.add(new HashSet<SortedSet<Item>>()); // The 0-itemsets; an empty set
+		L.add(new HashSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
-		C.add(new HashSet<SortedSet<Item>>()); // Candidate 0-itemsets; empty set
-		C.add(new HashSet<SortedSet<Item>>()); // Candidate 1-itemsets; empty set
+		C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
+		C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
 		
 		for (k = 2; L.get(k-1).size() > 0; k++) {
 			//C[k] = aprioriGen(L[k-1]); // New candidates
-			aprioriGen(L.get(k-1)); // Will update Ck
-			for (Transaction t : D) {
-				C[t] = subset(C[k], t); // Candidates contained in t
-				for (Candidate c : C[t]) {
+			aprioriGen(Ck); // Will update Ck
+			for (Iterator<String> it = documentsPosition.keySet().iterator(); it.hasNext(); /* */) {
+				String transaction = it.next();
+
+				C[transaction] = subset(Ck, transaction); // Candidates contained in t
+				for (Candidate c : C[transaction]) {
 					c.count++;
 				}
 			}
-			L.append(new HashSet<SortedSet<Item>>()); // Set of k-itemsets
-			for (SortedSet<Item> c : C[k]) {
+			L.append(new HashSet<Itemset>()); // Set of k-itemsets
+//			for (Itemset c : C[k]) {
+			for (ItemsetTrie c : leaves) {
 				L.get(k).add(c);
 			}
 		}
 		
 	}
 	
-	public HashSet<SortedSet<Item>> subset(Set<SortedSet<Item>> ck, Transaction t) {
+	public HashSet<Itemset> subset(Set<Itemset> ck, Transaction t) {
 		
 	}
 	
-	public void aprioriGen(Collection<SortedSet<Item>> prevCandidates) {
-		ArrayList<Item> tmpItemList;
-		ArrayList<SortedSet<Item>> newCandidates = new ArrayList<SortedSet<Item>>(); 
+	public boolean aprioriGen(SortedSet<Itemset> prevL) {
+		TreeSet<Itemset> newCandidates = new TreeSet<Itemset>(); // will replace L at the end
+		TreeSet<Itemset> groupCandidates = new TreeSet<Itemset>(); // candidates sharing k-2 prefix
+		Itemset groupPrefix = null; // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
 		
-		for (Iterator<List<Item>> it = kMin2Prefixes.iterator(); it.hasNext(); /* */ ) {
-			List<Item> prevPrefix = it.next();
-			SimpleTrie<Item> sharedNode = Ck.get(prevPrefix);
-			if (sharedNode.children.size() > 1) {
-				// This rocks! The itemsets will be combined.
-				// Combine each child with the children that come after it
-				Collection<SimpleTrie<Item>> leafNodes = sharedNode.children.values();
-				for (Iterator<SimpleTrie<Item>> itj = leafNodes.iterator(); itj.hasNext(); /* */ ) {
-					SimpleTrie<Item> leafj = itj.next();
-					if (leafj == sharedNode.children.get(sharedNode.children.lastKey()))
-						break;
-					Collection<SimpleTrie<Item>> biggerChildren = sharedNode.children.tailMap(leafj.path).values();
-					for (Iterator<SimpleTrie<Item>> itk = biggerChildren.iterator(); itk.hasNext(); /* */ ) {
-						SimpleTrie<Item> leafk = itk.next();
-						// XXX check here if the minsup???
-						
-						List<Item> newleaf = new ArrayList<Item>();
-						newleaf.addAll(sharedNode.path);
-						newleaf.add(leafj.value);
-						newleaf.add(leafk.value);
-						
-						try {
-							Ck.addToLeaf(newleaf);
-						} catch (Exception e) {
-							System.err.println("Skipped leaf");
+		// Loop through the k-1 itemsets (saved from the previous apriori iteration)
+		// and try to combine itemsets with those that come after,
+		// if they share the same prefix k-2 bits
+		for (Itemset kmin1Itemset : prevL) {
+			Itemset currPrefix = kmin1Itemset.chopLastBit();
+			if (currPrefix.equals(groupPrefix)) {
+				// Prefix matches, so add to the group to be combined
+				groupCandidates.add(kmin1Itemset);
+			} else {
+				if (groupCandidates.size() >= 2) {
+					// Split off the previous group, combine and try add to newCandidates
+					for (Iterator<Itemset> it = groupCandidates.iterator(); it.hasNext(); /* */) {
+						Itemset a = it.next();
+						SortedSet<Itemset> bigger = groupCandidates.tailSet(a);
+						for (Iterator<Itemset> itb = bigger.iterator(); itb.hasNext(); /* */) {
+							Itemset b = itb.next();
+							int bLastRange = b.ranges[b.ranges.length-1];
+							int bLastBit = Bits.getLastBit(b.words[b.words.length-1]);
+							// Combine a and b
+							Itemset combined = a.addAndCopy(bLastRange, bLastBit);
+							
+							// XXX and check minsup and minconf??? (Probably yes)
+							
 						}
 					}
 				}
+				groupPrefix = currPrefix;
+				groupCandidates = new TreeSet<Itemset>();
 			}
+		}
+		
+		// Finally check if newCandidates is empty. If so then the previous set of
+		// large itemsets is the final one.
+		if (newCandidates.size() > 0) {
+			Ck = newCandidates;
+			return true;
+		} else {
+			// Ck == prevL
+			return false;
 		}
 	}
 	
-	public void aprioriGenPrune(ItemsetTrie trie, int depth) {
-		for (Itemset leaf : trie.leaves) {
+	public void aprioriGenPrune(ItemsetTrie trie, Collection<ItemsetTrie> leaves, int depth) {
+		for (ItemsetTrie leaf : leaves) {
 			
 		}
 	}
