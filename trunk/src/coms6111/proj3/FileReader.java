@@ -32,7 +32,7 @@ public class FileReader {
 	static HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
-	
+	static HashMap<Integer, Itemset> docsWord=new HashMap<Integer, Itemset>();
 	static int minconf, minsup;
 	
 	public static void main(String[] args) throws IOException{
@@ -57,12 +57,14 @@ public class FileReader {
 		TreeMap<String,Integer> sortedWords=new TreeMap<String,Integer>();
 		Map<String, Integer> resultMap=null;
 		SortedSet<Integer> wordsInDoc;
+		SortedSet<Integer> docInWords;
 		int wordsPosIndex=0;
 		for(String aFile:fileList){
 	            fileContent=getContentByLocalFile (new File(aFile));
 	            content=getSplitContent(fileContent);
 	            st = new StringTokenizer(content.toString());
 	            wordsInDoc = new TreeSet<Integer>();
+	            docInWords = new TreeSet<Integer>();
 	            while (st.hasMoreTokens()){
 	            	String j = st.nextToken();
 	            	if(sortedWords.containsKey(j)){
@@ -75,7 +77,10 @@ public class FileReader {
 	            	}
 	            	wordsInDoc.add(documentsPosition.get(aFile));
             		wordDocs.put(wordsPosition.get(j), new Itemset(wordsInDoc));
+            		docInWords.add(wordsPosition.get(st));
 	            }
+	            docsWord.put(documentsPosition.get(aFile), new Itemset(docInWords));
+	           
 		}
 		
 		// Find the COMMON words
