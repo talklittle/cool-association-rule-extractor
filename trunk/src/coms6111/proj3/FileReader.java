@@ -32,7 +32,7 @@ public class FileReader {
 	static HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
-	static HashMap<Integer, Itemset> docsWord=new HashMap<Integer, Itemset>();
+	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static int minconf, minsup;
 	
 	public static void main(String[] args) throws IOException{
@@ -68,13 +68,16 @@ public class FileReader {
 	            while (st.hasMoreTokens()){
 	            	String j = st.nextToken();
 	            	if(sortedWords.containsKey(j)){
+	            		// You have seen the word so increment its count
 	            		sortedWords.put(j,sortedWords.get(j)+1);
 	            	}else{
+	            		// You have not seen the word yet in any document.
 	            		sortedWords.put(j, 1);
 	            		// Give newly found word a new word position
 	            		wordsPosition.put(j, wordsPosIndex);
 	            	    wordsPosIndex++;
 	            	}
+	            	// Add current document to list of documents containing this word
 	            	wordsInDoc.add(documentsPosition.get(aFile));
             		if (wordDocs.containsKey(wordsPosition.get(j))) {
             			
@@ -83,7 +86,7 @@ public class FileReader {
             		}
             		docInWords.add(wordsPosition.get(st));
 	            }
-	            docsWord.put(documentsPosition.get(aFile), new Itemset(docInWords));
+	            docWords.put(documentsPosition.get(aFile), new Itemset(docInWords));
 	           
 		}
 		
