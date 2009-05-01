@@ -63,6 +63,7 @@ public class Apriori {
 		
 		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
 		ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
+		Set<Itemset> Lk;
 				
 		L.add(new HashSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
@@ -73,31 +74,27 @@ public class Apriori {
 		
 		for (k = 2; L.get(k-1).size() > 0 && (maxWordsPerItemset > 0 && k < maxWordsPerItemset); k++) {
 			//C[k] = aprioriGen(L[k-1]); // New candidates
-			aprioriGen(Ck); // Will update Ck
-			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
-				String transaction = it.next();
-
-				C[transaction] = subset(Ck, transaction); // Candidates contained in t
-				for (Candidate c : C[transaction]) {
-					c.count++;
-				}
-			}
-			HashSet<Itemset> Lk = new HashSet<Itemset>();
-			L.append(new HashSet<Itemset>()); // Set of k-itemsets
-//			for (Itemset c : C[k]) {
-			for (ItemsetTrie c : leaves) {
-				Lk.add(c);
-			}
-			L.append(Lk);
+			Lk = aprioriGen(Ck, k); // Will update Ck
+//			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
+//				String transaction = it.next();
+//
+//				C[transaction] = subset(Ck, transaction); // Candidates contained in t
+//				for (Candidate c : C[transaction]) {
+//					c.count++;
+//				}
+//			}
+//			HashSet<Itemset> Lk = new HashSet<Itemset>();
+//			L.append(new HashSet<Itemset>()); // Set of k-itemsets
+////			for (Itemset c : C[k]) {
+//			for (ItemsetTrie c : leaves) {
+//				Lk.add(c);
+//			}
+			L.add(Lk);
 		}
 		
 	}
 	
-	public HashSet<Itemset> subset(Set<Itemset> ck, Transaction t) {
-		
-	}
-	
-	public boolean aprioriGen(SortedSet<Itemset> prevL, int k) {
+	public SortedSet<Itemset> aprioriGen(SortedSet<Itemset> prevL, int k) {
 		TreeSet<Itemset> newCandidates = new TreeSet<Itemset>(); // will replace L at the end
 		TreeSet<Itemset> groupCandidates = new TreeSet<Itemset>(); // candidates sharing k-2 prefix
 		Itemset groupPrefix = null; // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
@@ -107,10 +104,7 @@ public class Apriori {
 		// if they share the same prefix k-2 bits
 		for (Itemset kmin1Itemset : prevL) {
 			Itemset currPrefix = kmin1Itemset.chopLastBit();
-			if (currPrefix.equals(groupPrefix)) {
-				// Prefix matches, so add to the group to be combined
-				groupCandidates.add(kmin1Itemset);
-			} else {
+			if (!currPrefix.equals(groupPrefix)) {
 				if (groupCandidates.size() >= 2) {
 					// Split off the previous group, combine and try add to newCandidates
 					for (Iterator<Itemset> it = groupCandidates.iterator(); it.hasNext(); /* */) {
@@ -125,7 +119,7 @@ public class Apriori {
 							
 							// Pruning based on minsup
 							double support = 0;
-							for (Iterator<Itemset> wiadIt = docWords.keySet().iterator(); wiadIt.hasNext(); /* */) {
+							for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
 								Itemset wordsInADoc = wiadIt.next();
 								if (wordsInADoc.contains(combined)) {
 									support++;
@@ -151,19 +145,20 @@ public class Apriori {
 						}
 					}
 				}
+				// Initialize the next group's Set
 				groupPrefix = currPrefix;
 				groupCandidates = new TreeSet<Itemset>();
 			}
+			groupCandidates.add(kmin1Itemset);
 		}
 		
 		// Finally check if newCandidates is empty. If so then the previous set of
 		// large itemsets is the final one.
 		if (newCandidates.size() > 0) {
-			Ck = newCandidates;
-			return true;
+			return newCandidates;
 		} else {
 			// Ck == prevL
-			return false;
+			return null;
 		}
 	}
 	
