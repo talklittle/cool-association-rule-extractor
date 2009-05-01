@@ -23,19 +23,19 @@ public class Apriori {
 	private int k; // The current iteration of the algorithm
 	private int maxWordsPerItemset = 0;
 	
-	private HashMap<String, Integer> documentsPosition;
-	private HashMap<String, Integer> wordsPosition;
+	private HashMap<String, Integer> docIds;
+	private HashMap<String, Integer> wordIds;
 	private HashMap<Integer, Itemset> wordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
-	public Apriori(HashMap<String, Integer> newDocumentsPosition,
-			       HashMap<String, Integer> newWordsPosition,
+	public Apriori(HashMap<String, Integer> newDocIds,
+			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, Itemset> newWordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       double newMinsup,
 			       double newMinconf) {
-		documentsPosition = newDocumentsPosition;
-		wordsPosition = newWordsPosition;
+		docIds = newDocIds;
+		wordIds = newWordIds;
 		wordDocs = newWordDocs;
 		minsup = newMinsup;
 		minconf = newMinconf;
@@ -74,7 +74,7 @@ public class Apriori {
 		for (k = 2; L.get(k-1).size() > 0 && (maxWordsPerItemset > 0 && k < maxWordsPerItemset); k++) {
 			//C[k] = aprioriGen(L[k-1]); // New candidates
 			aprioriGen(Ck); // Will update Ck
-			for (Iterator<String> it = documentsPosition.keySet().iterator(); it.hasNext(); /* */) {
+			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
 				String transaction = it.next();
 
 				C[transaction] = subset(Ck, transaction); // Candidates contained in t
