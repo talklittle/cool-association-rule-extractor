@@ -27,9 +27,9 @@ import java.util.TreeSet;
 
 public class FileReader {
 	// Mapping from a filename to its id
-	static HashMap<String, Integer> documentsPosition;
+	static HashMap<String, Integer> docIds;
 	// Mapping from a word (String) to its id
-	static HashMap<String, Integer> wordsPosition=new HashMap<String, Integer>();
+	static HashMap<String, Integer> wordIds=new HashMap<String, Integer>();
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
@@ -49,49 +49,47 @@ public class FileReader {
 		
 		List<String> fileList=getFileList(new File(url));
 		
-		documentsPosition= initDocumentsFile(fileList);
+		docIds= initDocumentsFile(fileList);
 		
 		String fileContent=null;
 		StringBuffer content = null;
 	    StringTokenizer st;
-		TreeMap<String,Integer> sortedWords=new TreeMap<String,Integer>();
-		Map<String, Integer> resultMap=null;
+		TreeMap<String,Integer> sortedWords = new TreeMap<String,Integer>();
+		
 		SortedSet<Integer> wordsInDoc;
-		SortedSet<Integer> docInWords;
 		int wordsPosIndex=0;
 		for(String aFile:fileList){
-	            fileContent=getContentByLocalFile (new File(aFile));
-	            content=getSplitContent(fileContent);
-	            st = new StringTokenizer(content.toString());
-	            wordsInDoc = new TreeSet<Integer>();
-	            docInWords = new TreeSet<Integer>();
-	            while (st.hasMoreTokens()){
-	            	String j = st.nextToken();
-	            	if(sortedWords.containsKey(j)){
-	            		// You have seen the word so increment its count
-	            		sortedWords.put(j,sortedWords.get(j)+1);
-	            	}else{
-	            		// You have not seen the word yet in any document.
-	            		sortedWords.put(j, 1);
-	            		// Give newly found word a new word position
-	            		wordsPosition.put(j, wordsPosIndex);
-	            	    wordsPosIndex++;
-	            	}
-	            	// Add current document to list of documents containing this word
-	            	wordsInDoc.add(documentsPosition.get(aFile));
-            		if (wordDocs.containsKey(wordsPosition.get(j))) {
-            			
-            		} else {
-            			wordDocs.put(wordsPosition.get(j), new Itemset(wordsInDoc));
-            		}
-            		docInWords.add(wordsPosition.get(st));
-	            }
-	            docWords.put(documentsPosition.get(aFile), new Itemset(docInWords));
-	           
+            fileContent=getContentByLocalFile (new File(aFile));
+            content=getSplitContent(fileContent);
+            st = new StringTokenizer(content.toString());
+            wordsInDoc = new TreeSet<Integer>();
+            while (st.hasMoreTokens()){
+            	String j = st.nextToken();
+            	if(sortedWords.containsKey(j)){
+            		sortedWords.put(j,sortedWords.get(j)+1);
+            		// wordDocs should also contain the key. update wordDocs
+            		int docRange = Itemset.posToRange(docIds.get(aFile));
+            		int docBitmask = Itemset.posToBitmask(docIds.get(aFile));
+            		wordDocs.put(wordIds.get(j), wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask));
+            	}else{
+            		sortedWords.put(j, 1);
+            		// Give newly found word a new word position
+            		wordIds.put(j, wordsPosIndex);
+            		// Insert entry (word id, this doc id) to wordDocs
+            		int[] wordRanges = { Itemset.posToRange(wordsPosIndex) };
+            		int[] wordWords = { Itemset.posToBitmask(wordsPosIndex) };
+            		wordDocs.put(wordsPosIndex, new Itemset(wordRanges, wordWords));
+            		
+            	    wordsPosIndex++;
+            	}
+            	wordsInDoc.add(wordIds.get(j));
+
+            }
+			docWords.put(docIds.get(aFile), new Itemset(wordsInDoc));
 		}
 		
 		// Find the COMMON words
-		resultMap=sortByValue(sortedWords,true);
+		Map<String, Integer> resultMap = sortByValue(sortedWords,true);
 		Set<String> ss = resultMap.keySet();
         TreeSet<String> sortedCommon = new TreeSet<String>();
         int i = 0;
@@ -136,9 +134,10 @@ public class FileReader {
 	}
 	
 	public static void runApriori() {
-		Apriori apriori = new Apriori(documentsPosition,
-									  wordsPosition,
+		Apriori apriori = new Apriori(docIds,
+									  wordIds,
 									  wordDocs,
+									  docWords,
 									  minconf,
 									  minsup);
 		HashSet<Itemset> largeItemsets = apriori.doApriori();
