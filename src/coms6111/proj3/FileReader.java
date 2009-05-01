@@ -76,7 +76,11 @@ public class FileReader {
 	            	    wordsPosIndex++;
 	            	}
 	            	wordsInDoc.add(documentsPosition.get(aFile));
-            		wordDocs.put(wordsPosition.get(j), new Itemset(wordsInDoc));
+            		if (wordDocs.containsKey(wordsPosition.get(j))) {
+            			
+            		} else {
+            			wordDocs.put(wordsPosition.get(j), new Itemset(wordsInDoc));
+            		}
             		docInWords.add(wordsPosition.get(st));
 	            }
 	            docsWord.put(documentsPosition.get(aFile), new Itemset(docInWords));
