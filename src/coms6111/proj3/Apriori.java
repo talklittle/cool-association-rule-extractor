@@ -21,21 +21,36 @@ public class Apriori {
 	private double minsup, minconf;
 	private TreeSet<Itemset> Ck;
 	private int k; // The current iteration of the algorithm
+	private int maxWordsPerItemset = 0;
 	
 	private HashMap<String, Integer> documentsPosition;
 	private HashMap<String, Integer> wordsPosition;
 	private HashMap<Integer, Itemset> wordDocs;
+	private HashMap<Integer, Itemset> docWords;
 	
 	public Apriori(HashMap<String, Integer> newDocumentsPosition,
 			       HashMap<String, Integer> newWordsPosition,
 			       HashMap<Integer, Itemset> newWordDocs,
-			       double newMinsup, double newMinconf) {
+			       HashMap<Integer, Itemset> newDocWords,
+			       double newMinsup,
+			       double newMinconf) {
 		documentsPosition = newDocumentsPosition;
 		wordsPosition = newWordsPosition;
 		wordDocs = newWordDocs;
 		minsup = newMinsup;
 		minconf = newMinconf;
 		Ck = new TreeSet<Itemset>();
+	}
+	
+	public Apriori(HashMap<String, Integer> newDocumentsPosition,
+			       HashMap<String, Integer> newWordsPosition,
+			       HashMap<Integer, Itemset> newWordDocs,
+			       HashMap<Integer, Itemset> newDocWords,
+			       double newMinsup,
+			       double newMinconf,
+			       int newMaxWordsPerItemset) {
+		this(newDocumentsPosition, newWordsPosition, newWordDocs, newDocWords, newMinsup, newMinconf);
+		maxWordsPerItemset = newMaxWordsPerItemset;
 	}
 
 	/**
@@ -56,7 +71,7 @@ public class Apriori {
 		C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
 		C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
 		
-		for (k = 2; L.get(k-1).size() > 0; k++) {
+		for (k = 2; L.get(k-1).size() > 0 && (maxWordsPerItemset > 0 && k < maxWordsPerItemset); k++) {
 			//C[k] = aprioriGen(L[k-1]); // New candidates
 			aprioriGen(Ck); // Will update Ck
 			for (Iterator<String> it = documentsPosition.keySet().iterator(); it.hasNext(); /* */) {
@@ -82,7 +97,7 @@ public class Apriori {
 		
 	}
 	
-	public boolean aprioriGen(SortedSet<Itemset> prevL) {
+	public boolean aprioriGen(SortedSet<Itemset> prevL, int k) {
 		TreeSet<Itemset> newCandidates = new TreeSet<Itemset>(); // will replace L at the end
 		TreeSet<Itemset> groupCandidates = new TreeSet<Itemset>(); // candidates sharing k-2 prefix
 		Itemset groupPrefix = null; // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
@@ -108,8 +123,31 @@ public class Apriori {
 							// Combine a and b
 							Itemset combined = a.addAndCopy(bLastRange, bLastBit);
 							
-							// XXX and check minsup and minconf??? (Probably yes)
+							// Pruning based on minsup
+							double support = 0;
+							for (Iterator<Itemset> wiadIt = docWords.keySet().iterator(); wiadIt.hasNext(); /* */) {
+								Itemset wordsInADoc = wiadIt.next();
+								if (wordsInADoc.contains(combined)) {
+									support++;
+								}
+							}
+							support /= docWords.size(); // Ratio of containing transactions
+							if (support < minsup) {
+								break;
+							}
 							
+							// Pruning based on whether all subsets are part of the k-1 large itemsets
+							int numLargeSubsetsOfCandidate = 0;
+							for (Itemset kmin1Itemset2 : prevL) {
+								if (combined.contains(kmin1Itemset2))
+									numLargeSubsetsOfCandidate++;
+							}
+							if (numLargeSubsetsOfCandidate < combination(k, k-1)) {
+								break;
+							}
+							
+							// Survived pruning so add to newCandidates
+							newCandidates.add(combined);
 						}
 					}
 				}
@@ -129,10 +167,20 @@ public class Apriori {
 		}
 	}
 	
-	public void aprioriGenPrune(ItemsetTrie trie, Collection<ItemsetTrie> leaves, int depth) {
-		for (ItemsetTrie leaf : leaves) {
-			
-		}
+	/**
+	 * Return mathematical combination: top C bottom (usually expressed: n C k)
+	 * = n! / (k!(n-k)!)
+	 * @param top
+	 * @param bottom
+	 * @return
+	 */
+	public static long combination(int top, int bottom) {
+		return factorial(top) / (factorial(bottom) * factorial(top-bottom));
 	}
 	
+	public static long factorial(int n) {
+		if (n == 1 || n == 0)
+			return 1;
+		return n * factorial(n-1);
+	}
 }
