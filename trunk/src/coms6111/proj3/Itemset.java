@@ -112,6 +112,48 @@ public class Itemset implements Comparable<Itemset> {
 		return new Itemset(newRanges, newWords);
 	}
 	
+	public boolean contains(Itemset o) {
+		for (int i = 0; i < o.ranges.length; i++) {
+			if (!this.containsWords(o.ranges[i], o.words[i]))
+				return false;
+		}
+		return true;
+	}
+	
+	public boolean containsRange(int rangeId) {
+		int left, mid, right;
+		left = 0;
+		right = ranges.length;
+		while (left < right) {
+			mid = left + (right - left) / 2;
+			if (rangeId == ranges[mid]) {
+				return true;
+			} else if (rangeId > ranges[mid]) {
+				left = mid+1;
+			} else {
+				right = mid-1;
+			}
+		}
+		return false;
+	}
+	
+	public boolean containsWords(int rangeId, int bitmask) {
+		int left, mid, right;
+		left = 0;
+		right = ranges.length;
+		while (left < right) {
+			mid = left + (right - left) / 2;
+			if (rangeId == ranges[mid]) {
+				return (bitmask & words[mid]) == bitmask;
+			} else if (rangeId > ranges[mid]) {
+				left = mid+1;
+			} else {
+				right = mid-1;
+			}
+		}
+		return false;
+	}
+	
 	/**
 	 * Find the range id of the given bit index.
 	 * This is very simple. Each range contains 32 bits, so just
