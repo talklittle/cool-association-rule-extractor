@@ -120,6 +120,7 @@ public class FileReader {
         	writer.write(s + "\n");
 		}
         writer.close();
+        System.out.println("Created COMMON file.");
         
 		// Output the sorted WORDS (excluding COMMON)
         File WORDS = new File("WORDS");
@@ -131,6 +132,7 @@ public class FileReader {
 			writer.write(it.next() + "\n");
 		}
         writer.close();
+        System.out.println("Created WORDS file.");
 		
         HashSet<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
         generateAssociationRule(largeItemset);
