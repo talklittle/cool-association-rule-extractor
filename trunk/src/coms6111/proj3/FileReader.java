@@ -130,17 +130,17 @@ public class FileReader {
 		}
         writer.close();
 		
-        runApriori();
+        runApriori(sortedWords,wordIds);
 	}
 	
-	public static void runApriori() {
+	public static void runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
 									  wordDocs,
 									  docWords,
 									  minconf,
 									  minsup);
-		HashSet<Itemset> largeItemsets = apriori.doApriori();
+		HashSet<Set<Itemset>> largeItemsets = apriori.doApriori(sortedwords,wordIds);
 	}
 	
 	/**
