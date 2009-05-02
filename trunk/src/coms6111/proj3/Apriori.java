@@ -58,8 +58,8 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public HashSet<Itemset> doApriori() {
-		Set<Itemset> large1Itemsets = getLarge1Itemsets();
+	public HashSet<Itemset> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+		Set<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords, wordIds);
 		
 		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
 		ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
@@ -178,4 +178,17 @@ public class Apriori {
 			return 1;
 		return n * factorial(n-1);
 	}
+	
+	public static Set<Itemset> getLarge1Itemsets (TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds){
+		Set<Itemset> result = new TreeSet<Itemset>();
+		for(String s: sortedwords.keySet()){
+			Itemset largeItem = null;
+			int position = wordIds.get(s);
+			int[] rangeId= { Itemset.posToRange(position) };
+			int[] wordId= { Itemset.posToBitmask(position) };
+			largeItem = new Itemset(rangeId, wordId);
+			result.add(largeItem);
+			}
+		return result;
+		}
 }
