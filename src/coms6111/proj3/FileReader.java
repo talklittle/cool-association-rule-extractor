@@ -213,20 +213,20 @@ public class FileReader {
 					if(confidence>minconf){
 						if(ids.size()==3){
 							if(word.equals(words[0])){
-								System.out.println(word+"=>"+words[1]+words[2]);
+								System.out.println(word+"=>"+words[1]+words[2]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
 								
 							}else if(word.equals(words[1])){
-								System.out.println(word+"=>"+words[0]+words[2]);
+								System.out.println(word+"=>"+words[0]+words[2]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
 								
 							}else if(word.equals(words[2])){
-								System.out.println(word+"=>"+words[0]+words[1]);
+								System.out.println(word+"=>"+words[0]+words[1]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
 							}
 							
 						}else if(ids.size()==2){
 							if(word.equals(words[0])){
-								System.out.println(word+"=>"+words[1]);
+								System.out.println(word+"=>"+words[1]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
 							}else if(word.equals(words[1])){
-								System.out.println(word+"=>"+words[0]);
+								System.out.println(word+"=>"+words[0]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
 							}
 						}
 						
