@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -34,12 +33,17 @@ public class FileReader {
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
-	static int minconf, minsup;
+	static double minsup, minconf;
+	
+	public static void usage() {
+		System.out.println("Usage:");
+		System.out.println("java FileReader <Yahoo|20newsgroups> <minsup> <minconf>");
+	}
 	
 	public static void main(String[] args) throws IOException{
 		String url=null;
-		if (args.length < 1) {
-			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
+		if (args.length < 3) {
+			usage();
 			System.exit(1);
 		}
 		if(args[0].equals("Yahoo")){
@@ -48,10 +52,20 @@ public class FileReader {
 		else if(args[0].equals("20newsgroups")){
 			url="/import/html/6111/20091/Proj3-Data/20newsgroups/";
 		} else {
-			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
+			usage();
+			System.exit(1);
+		}
+		try {
+			minsup = Double.parseDouble(args[1]);
+			minconf = Double.parseDouble(args[2]);
+		} catch (Exception e) {
+			usage();
 			System.exit(1);
 		}
 		
+		// Initialize the Bits tables
+		Bits.init();
+
 		List<String> fileList=getFileList(new File(url));
 		
 		docIds= initDocumentsFile(fileList);
@@ -154,26 +168,34 @@ public class FileReader {
         writer.close();
         System.out.println("Created WORDS file.");
         
-        ArrayList<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
+        ///////////////////////////
+        // Run Apriori algorithm
+        ///////////////////////////
+        
+        ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
         generateAssociationRule(largeItemset,idWords);
 	}
 	
-	public static ArrayList<Set<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
+									  idWords,
 									  wordDocs,
 									  docWords,
-									  minconf,
-									  minsup);
-		ArrayList<Set<Itemset>> largeItemsets = apriori.doApriori(sortedwords,wordIds);
+									  minsup,
+									  minconf);
+		ArrayList<SortedSet<Itemset>> largeItemsets = apriori.doApriori(sortedwords);
 		return largeItemsets;
 	}
-	public static void generateAssociationRule(ArrayList<Set<Itemset>> largeItemset, HashMap<Integer, String> idWords){
-		for(int i=2;i<4;i++){
+	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset, HashMap<Integer, String> idWords){
+		for(int i=2;i<=3;i++){
+			System.out.println("DEBUG: generateAssociationRule: i=" + i);
+			if (largeItemset.size() <= i)
+				break;
 			Set<Itemset> beginSet=largeItemset.get(i);
 			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext();){
 				Itemset itset = it.next();
-				String[] words=null;
+				String[] words=new String[i];
 				List<Integer> ids=itset.getWordIds();
 				for(int j=0;j<ids.size();i++){
 					words[j]=idWords.get(ids.get(j));
@@ -206,8 +228,6 @@ public class FileReader {
 				
 			}
 		}
-		
-		
 	}
 	
 	/**

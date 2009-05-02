@@ -19,37 +19,39 @@ import java.util.*;
 public class Apriori {
 	
 	private double minsup, minconf;
-	private TreeSet<Itemset> Ck;
-	private int k; // The current iteration of the algorithm
 	private int maxWordsPerItemset = 0;
 	
 	private HashMap<String, Integer> docIds;
 	private HashMap<String, Integer> wordIds;
+	private HashMap<Integer, String> idWords;
 	private HashMap<Integer, Itemset> wordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
 	public Apriori(HashMap<String, Integer> newDocIds,
 			       HashMap<String, Integer> newWordIds,
+			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       double newMinsup,
 			       double newMinconf) {
 		docIds = newDocIds;
 		wordIds = newWordIds;
+		idWords = newIdWords;
 		wordDocs = newWordDocs;
+		docWords = newDocWords;
 		minsup = newMinsup;
 		minconf = newMinconf;
-		Ck = new TreeSet<Itemset>();
 	}
 	
 	public Apriori(HashMap<String, Integer> newDocumentsPosition,
 			       HashMap<String, Integer> newWordsPosition,
+			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       double newMinsup,
 			       double newMinconf,
 			       int newMaxWordsPerItemset) {
-		this(newDocumentsPosition, newWordsPosition, newWordDocs, newDocWords, newMinsup, newMinconf);
+		this(newDocumentsPosition, newWordsPosition, newIdWords, newWordDocs, newDocWords, newMinsup, newMinconf);
 		maxWordsPerItemset = newMaxWordsPerItemset;
 	}
 
@@ -58,23 +60,23 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public ArrayList<Set<Itemset>> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
-		Set<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords, wordIds);
+	public ArrayList<SortedSet<Itemset>> doApriori(TreeMap<String, Integer> sortedwords) {
+		SortedSet<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords);
 		
-		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
+		ArrayList<SortedSet<Itemset>> L = new ArrayList<SortedSet<Itemset>>(); // Large itemsets
 		//ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
-		Set<Itemset> Lk;
+		SortedSet<Itemset> Lk;
 				
-		L.add(new HashSet<Itemset>()); // The 0-itemsets; an empty set
+		L.add(new TreeSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
 		// XXX these 2 needed?
 		//C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
 		//C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
 		
-		for (k = 2; k<4; k++) {
-			//C[k] = aprioriGen(L[k-1]); // New candidates
-			Lk = aprioriGen(Ck, k); // Will update Ck
+		for (int k = 2; k<=3; k++) {
+			System.out.println("DEBUG: doApriori: k=" + k);
+			Lk = aprioriGen(L.get(k-1), k); // Will update Ck
 //			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
 //				String transaction = it.next();
 //
@@ -89,7 +91,12 @@ public class Apriori {
 //			for (ItemsetTrie c : leaves) {
 //				Lk.add(c);
 //			}
-			L.add(Lk);
+			if (Lk == null) {
+				// No more large itemsets were found.
+				break;
+			} else {
+				L.add(Lk);
+			}
 		}
 		return L;
 	}
@@ -97,12 +104,14 @@ public class Apriori {
 	public SortedSet<Itemset> aprioriGen(SortedSet<Itemset> prevL, int k) {
 		TreeSet<Itemset> newCandidates = new TreeSet<Itemset>(); // will replace L at the end
 		TreeSet<Itemset> groupCandidates = new TreeSet<Itemset>(); // candidates sharing k-2 prefix
-		Itemset groupPrefix = null; // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
+		Itemset groupPrefix = new Itemset(); // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
 		
 		// Loop through the k-1 itemsets (saved from the previous apriori iteration)
 		// and try to combine itemsets with those that come after,
 		// if they share the same prefix k-2 bits
 		for (Itemset kmin1Itemset : prevL) {
+//			System.out.println("DEBUG: aprioriGen: kmin1Itemset # words: " + kmin1Itemset.getNumWords()
+//					+ " # ranges: " + kmin1Itemset.ranges.length);
 			Itemset currPrefix = kmin1Itemset.chopLastBit();
 			if (!currPrefix.equals(groupPrefix)) {
 				if (groupCandidates.size() >= 2) {
@@ -179,16 +188,32 @@ public class Apriori {
 		return n * factorial(n-1);
 	}
 	
-	public static Set<Itemset> getLarge1Itemsets (TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds){
-		Set<Itemset> result = new TreeSet<Itemset>();
+	public SortedSet<Itemset> getLarge1Itemsets (TreeMap<String, Integer> sortedwords){
+		SortedSet<Itemset> result = new TreeSet<Itemset>();
 		for(String s: sortedwords.keySet()){
-			Itemset largeItem = null;
+			Itemset largeItem;
 			int position = wordIds.get(s);
 			int[] rangeId= { Itemset.posToRange(position) };
-			int[] wordId= { Itemset.posToBitmask(position) };
+			int[] wordId = { Itemset.posToBitmask(position) };
+//			System.out.println("DEBUG: getLarge1Itemsets: s "+s+" wordId "+position+" range "+rangeId[0]);
+//			System.out.println("DEBUG: getLarge1Itemsets: wordId is "+wordId[0]+" and has " + Bits.getNumBits(wordId[0]) + " bits");
 			largeItem = new Itemset(rangeId, wordId);
-			result.add(largeItem);
+			
+			// Pruning based on minsup
+			double support = 0;
+			for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
+				Itemset wordsInADoc = wiadIt.next();
+				if (wordsInADoc.contains(largeItem)) {
+					support++;
+				}
 			}
-		return result;
+			support /= docWords.size(); // Ratio of containing transactions
+			if (support >= minsup) {
+				result.add(largeItem);
+				System.out.println("DEBUG: getLarge1Itemsets: added word " + idWords.get(position));
+			}
 		}
+		
+		return result;
+	}
 }

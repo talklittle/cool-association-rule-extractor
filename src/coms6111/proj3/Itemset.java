@@ -6,6 +6,11 @@ public class Itemset implements Comparable<Itemset> {
 	public int[] ranges;
 	public int[] words; // words[] and ranges[] are same length
 	
+	public Itemset() {
+		ranges = new int[0];
+		words = new int[0];
+	}
+	
 	public Itemset(SortedSet<Integer> wordPositions) {
 		TreeMap<Integer, Integer> rangesWords = new TreeMap<Integer, Integer>();
 		int rangeIndex, bitmask;
@@ -39,9 +44,12 @@ public class Itemset implements Comparable<Itemset> {
 		words = Arrays.copyOf(other.words, newLength);
 	}
 	
-	public String[] getWords(HashMap<Integer, String> wordsRev) {
-		// FIXME
-		return null;
+	public int getNumWords() {
+		int returnMe = 0;
+		for (int i = 0; i < ranges.length; i++) {
+			returnMe += Bits.getNumBits(words[i]);
+		}
+		return returnMe;
 	}
 	
 	public String[] getDocs(HashMap<Integer, String> docsRev) {
@@ -52,6 +60,8 @@ public class Itemset implements Comparable<Itemset> {
 	public Itemset chopLastBit() {
 		Itemset returnMe;
 		int lastRange = ranges.length - 1;
+		if (lastRange < 0)
+			return null;
 		// The last bit is in a range by itself, so chop off the last range
 		if (Bits.singleBit.contains(ranges[lastRange])) {
 			returnMe = new Itemset(this, ranges.length-1);
@@ -263,12 +273,16 @@ public class Itemset implements Comparable<Itemset> {
 	 * @return
 	 */
 	public static int posToBitmask(int i) {
-		return 0x80000000 >> (i % 32);
+		return 0x80000000 >>> (i % 32);
 	}
 	
 	public boolean equals(Itemset o) {
-		if (o == null)
-			return false;
+		if (o == null) {
+			if (ranges.length == 0)
+				return true;
+			else
+				return false;
+		}
 		if (ranges.length != o.ranges.length || words.length != o.words.length)
 			return false;
 		// Compares 32 bits at a time :)
