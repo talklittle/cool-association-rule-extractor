@@ -211,15 +211,25 @@ public class FileReader {
 					double wordSupport=getItemsetSupport(wordItem);
 					double confidence=itemsetSupport/wordSupport;
 					if(confidence>minconf){
-						if(word==words[0]){
-							System.out.println(word+"=>"+words[1]+words[2]);
+						if(ids.size()==3){
+							if(word.equals(words[0])){
+								System.out.println(word+"=>"+words[1]+words[2]);
+								
+							}else if(word.equals(words[1])){
+								System.out.println(word+"=>"+words[0]+words[2]);
+								
+							}else if(word.equals(words[2])){
+								System.out.println(word+"=>"+words[0]+words[1]);
+							}
 							
-						}else if(word==words[1]){
-							System.out.println(word+"=>"+words[0]+words[2]);
-							
-						}else if(word==words[2]){
-							System.out.println(word+"=>"+words[0]+words[1]);
+						}else if(ids.size()==2){
+							if(word.equals(words[0])){
+								System.out.println(word+"=>"+words[1]);
+							}else if(word.equals(words[1])){
+								System.out.println(word+"=>"+words[0]);
+							}
 						}
+						
 					}
 					else{
 						break;
