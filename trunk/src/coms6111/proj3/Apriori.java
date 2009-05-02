@@ -70,10 +70,6 @@ public class Apriori {
 		L.add(new TreeSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
-		// XXX these 2 needed?
-		//C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
-		//C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
-		
 		for (int k = 2; k<=3; k++) {
 			System.out.println("DEBUG: doApriori: k=" + k);
 			Lk = aprioriGen(L.get(k-1), k); // Will update Ck
@@ -126,16 +122,7 @@ public class Apriori {
 							// Combine a and b
 							Itemset combined = a.addAndCopy(bLastRange, bLastBit);
 							
-							// Pruning based on minsup
-							double support = 0;
-							for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
-								Itemset wordsInADoc = wiadIt.next();
-								if (wordsInADoc.contains(combined)) {
-									support++;
-								}
-							}
-							support /= docWords.size(); // Ratio of containing transactions
-							if (support < minsup) {
+							if (FileReader.getItemsetSupport(combined) < minsup) {
 								break;
 							}
 							
@@ -199,16 +186,7 @@ public class Apriori {
 //			System.out.println("DEBUG: getLarge1Itemsets: wordId is "+wordId[0]+" and has " + Bits.getNumBits(wordId[0]) + " bits");
 			largeItem = new Itemset(rangeId, wordId);
 			
-			// Pruning based on minsup
-			double support = 0;
-			for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
-				Itemset wordsInADoc = wiadIt.next();
-				if (wordsInADoc.contains(largeItem)) {
-					support++;
-				}
-			}
-			support /= docWords.size(); // Ratio of containing transactions
-			if (support >= minsup) {
+			if (FileReader.getItemsetSupport(largeItem) >= minsup) {
 				result.add(largeItem);
 				System.out.println("DEBUG: getLarge1Itemsets: added word " + idWords.get(position));
 			}

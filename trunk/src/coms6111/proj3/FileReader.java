@@ -187,11 +187,14 @@ public class FileReader {
 		ArrayList<SortedSet<Itemset>> largeItemsets = apriori.doApriori(sortedwords);
 		return largeItemsets;
 	}
+
 	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset, HashMap<Integer, String> idWords){
 		for(int i=2;i<=3;i++){
 			System.out.println("DEBUG: generateAssociationRule: i=" + i);
-			if (largeItemset.size() <= i)
+			if (largeItemset.size() <= i) {
+				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
 				break;
+			}
 			Set<Itemset> beginSet=largeItemset.get(i);
 			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext();){
 				Itemset itset = it.next();
@@ -202,7 +205,7 @@ public class FileReader {
 				}
 				
 				double itemsetSupport=getItemsetSupport(itset);
-				for (int wId : itset.getWordIds()){
+				for (int wId : ids){
 					
 					String word=idWords.get(wId);
 					int[] rangeId= { Itemset.posToRange(wId) };
