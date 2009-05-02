@@ -58,21 +58,21 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public HashSet<Itemset> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public HashSet<Set<Itemset>> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Set<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords, wordIds);
 		
-		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
-		ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
+		HashSet<Set<Itemset>> L = new HashSet<Set<Itemset>>(); // Large itemsets
+		//ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
 		Set<Itemset> Lk;
 				
 		L.add(new HashSet<Itemset>()); // The 0-itemsets; an empty set
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
 		// XXX these 2 needed?
-		C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
-		C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
+		//C.add(new HashSet<Itemset>()); // Candidate 0-itemsets; empty set
+		//C.add(new HashSet<Itemset>()); // Candidate 1-itemsets; empty set
 		
-		for (k = 2; L.get(k-1).size() > 0 && (maxWordsPerItemset > 0 && k < maxWordsPerItemset); k++) {
+		for (k = 2; k<4; k++) {
 			//C[k] = aprioriGen(L[k-1]); // New candidates
 			Lk = aprioriGen(Ck, k); // Will update Ck
 //			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
@@ -91,7 +91,7 @@ public class Apriori {
 //			}
 			L.add(Lk);
 		}
-		
+		return L;
 	}
 	
 	public SortedSet<Itemset> aprioriGen(SortedSet<Itemset> prevL, int k) {
