@@ -70,19 +70,17 @@ public class Itemset implements Comparable<Itemset> {
 	 * @return Copy of this Itemset with new item inserted
 	 */
 	public Itemset addAndCopy(int range, int bitmask) {
-		int newRangeLength = ranges.length;
-		boolean found = false;
 		int[] newRanges, newWords;
-		// See if the new bit falls into existing range
-		// TODO change this to binary search
-		for (int i = 0; i < ranges.length; i++) {
-			if (ranges[i] == range) {
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			newRangeLength++;
+		
+		int newRangeLength;
+		int rangePos;
+		rangePos = getRangePos(range);
+		if (rangePos != -1) {
+			// Goes into existing range
+			newRangeLength = ranges.length;
+		} else {
+			// Goes into a new range
+			newRangeLength = ranges.length + 1;
 		}
 
 		// Insert the new item where it should go
@@ -121,37 +119,92 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	public boolean containsRange(int rangeId) {
-		int left, mid, right;
-		left = 0;
-		right = ranges.length;
-		while (left < right) {
-			mid = left + (right - left) / 2;
-			if (rangeId == ranges[mid]) {
-				return true;
-			} else if (rangeId > ranges[mid]) {
-				left = mid+1;
-			} else {
-				right = mid-1;
-			}
-		}
-		return false;
+		return getRangePos(rangeId) != -1;
 	}
 	
 	public boolean containsWords(int rangeId, int bitmask) {
+		int rangePos = getRangePos(rangeId);
+		if (rangePos == -1)
+			return false;
+		return (words[rangePos] & bitmask) == bitmask;
+	}
+	
+	/**
+	 * Get a copy of the itemset with the word removed
+	 * @param rangeId
+	 * @param bitmask
+	 * @return boolean whether or not the word was in the itemset
+	 */
+	public Itemset removeAndCopy(int rangeId, int bitmask) {
+		int rangePos = getRangePos(rangeId);
+		int newBitmap;
+		int[] newRanges, newWords;
+		if (rangePos == -1) {
+			// Doesn't contain that range
+			return new Itemset(this, ranges.length);
+		}
+		// Unset the bits
+		newBitmap = words[rangePos] & ~bitmask;
+		if (newBitmap == 0) {
+			// Remove this range
+			newRanges = Arrays.copyOf(ranges, ranges.length - 1);
+			newWords = Arrays.copyOf(words, words.length - 1);
+			for (int i = rangePos; i < ranges.length - 1; i++) {
+				newRanges[i] = ranges[i+1];
+				newWords[i] = words[i+1];
+			}
+			return new Itemset(newRanges, newWords);
+		} else {
+			// Return a copy with bits from bitmask unset
+			Itemset returnMe = new Itemset(this, ranges.length);
+			returnMe.words[rangePos] = newBitmap;
+			return returnMe;
+		}
+	}
+	
+	public List<Integer> getWordIds() {
+		ArrayList<Integer> allWordIds = new ArrayList<Integer>();
+		for (int i = 0; i < ranges.length; i++) {
+			allWordIds.addAll(rangeToWordIds(ranges[i]));
+		}
+		return allWordIds;
+	}
+	
+	private List<Integer> rangeToWordIds(int rangeId) {
+		ArrayList<Integer> wordIds = new ArrayList<Integer>();
+		int base = rangeId * 32;
+		int bitmask = words[getRangePos(rangeId)];
+		int firstbit;
+		
+		while (bitmask != 0) {
+			firstbit = Bits.getFirstBit(bitmask);
+			wordIds.add(base + Bits.getPosFromLeft(firstbit));
+			bitmask &= ~firstbit;
+		}
+		return wordIds;
+	}
+	
+	/**
+	 * Given a rangeId, find the position in the current ranges[] array
+	 * where that Id is located.
+	 * @param rangeId
+	 * @return the position, or -1 if rangeId is not in ranges[]
+	 */
+	private int getRangePos(int rangeId) {
 		int left, mid, right;
 		left = 0;
 		right = ranges.length;
 		while (left < right) {
 			mid = left + (right - left) / 2;
-			if (rangeId == ranges[mid]) {
-				return (bitmask & words[mid]) == bitmask;
-			} else if (rangeId > ranges[mid]) {
+			if (rangeId > ranges[mid]) {
 				left = mid+1;
-			} else {
+			} else if (rangeId < ranges[mid]) {
 				right = mid-1;
+			} else {
+				return mid;
 			}
 		}
-		return false;
+		return -1;
 	}
 	
 	/**
