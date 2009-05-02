@@ -134,21 +134,58 @@ public class FileReader {
         writer.close();
         System.out.println("Created WORDS file.");
 		
-        HashSet<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
-        generateAssociationRule(largeItemset);
+        ArrayList<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
+        generateAssociationRule(largeItemset,idWords);
 	}
 	
-	public static HashSet<Set<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public static ArrayList<Set<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
 									  wordDocs,
 									  docWords,
 									  minconf,
 									  minsup);
-		HashSet<Set<Itemset>> largeItemsets = apriori.doApriori(sortedwords,wordIds);
+		ArrayList<Set<Itemset>> largeItemsets = apriori.doApriori(sortedwords,wordIds);
 		return largeItemsets;
 	}
-	public static void generateAssociationRule(HashSet<Set<Itemset>> largeItemset){
+	public static void generateAssociationRule(ArrayList<Set<Itemset>> largeItemset, HashMap<Integer, String> idWords){
+		for(int i=2;i<4;i++){
+			Set<Itemset> beginSet=largeItemset.get(i);
+			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext();){
+				Itemset itset = it.next();
+				String[] words=null;
+				List<Integer> ids=itset.getWordIds();
+				for(int j=0;j<ids.size();i++){
+					words[j]=idWords.get(ids.get(j));
+				}
+				
+				double itemsetSupport=getItemsetSupport(itset);
+				for (int wId : itset.getWordIds()){
+					
+					String word=idWords.get(wId);
+					int[] rangeId= { Itemset.posToRange(wId) };
+					int[] wordId= { Itemset.posToBitmask(wId) };
+					Itemset wordItem = new Itemset(rangeId, wordId);
+					double wordSupport=getItemsetSupport(wordItem);
+					double confidence=itemsetSupport/wordSupport;
+					if(confidence>minconf){
+						if(word==words[0]){
+							System.out.println(word+"=>"+words[1]+words[2]);
+							
+						}else if(word==words[1]){
+							System.out.println(word+"=>"+words[0]+words[2]);
+							
+						}else if(word==words[2]){
+							System.out.println(word+"=>"+words[0]+words[1]);
+						}
+					}
+					else{
+						break;
+					}
+				}
+				
+			}
+		}
 		
 		
 	}
@@ -241,5 +278,17 @@ public class FileReader {
     	return documentsPosition;
     	
     }
+    public static double getItemsetSupport(Itemset itset){
+    	double support = 0;
+		for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
+			Itemset wordsInADoc = wiadIt.next();
+			if (wordsInADoc.contains(itset)) {
+				support++;
+			}
+		}
+		support /= docWords.size(); // Ratio of containing transactions
+    	return support;
+    }
+   
 
 }

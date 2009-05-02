@@ -58,10 +58,10 @@ public class Apriori {
 	 * @param large1Itemsets Collection of the large 1-itemsets
 	 * @return Set of largest itemsets
 	 */
-	public HashSet<Set<Itemset>> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public ArrayList<Set<Itemset>> doApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Set<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords, wordIds);
 		
-		HashSet<Set<Itemset>> L = new HashSet<Set<Itemset>>(); // Large itemsets
+		ArrayList<Set<Itemset>> L = new ArrayList<Set<Itemset>>(); // Large itemsets
 		//ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
 		Set<Itemset> Lk;
 				
