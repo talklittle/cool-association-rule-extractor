@@ -38,6 +38,10 @@ public class FileReader {
 	
 	public static void main(String[] args) throws IOException{
 		String url=null;
+		if (args.length < 1) {
+			System.err.println("argument must be 'Yahoo' or '20newsgroups'");
+			System.exit(1);
+		}
 		if(args[0].equals("Yahoo")){
 			url="/import/html/6111/20091/Proj3-Data/yahoo/";
 			}
@@ -96,6 +100,7 @@ public class FileReader {
 				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
 			}
 		}
+		System.out.println("Created index in memory.");
 		
 		// Find the COMMON words
 		Map<String, Integer> resultMap = sortByValue(sortedWords,true);
@@ -118,10 +123,18 @@ public class FileReader {
         FileWriter writer = new FileWriter(COMMON);
         for (Iterator<String> it = sortedCommon.iterator(); it.hasNext(); /* */) {
         	String s = it.next();
+        	int sPos = wordIds.get(s);
         	// Remove the common word from WORDS
         	sortedWords.remove(s);
         	
-        	// TODO remove the word from all Transactions
+        	// remove the word from all Transactions
+        	for (Itemset transaction : docWords.values()) {
+        		transaction.remove(Itemset.posToRange(sPos), Itemset.posToBitmask(sPos));
+        	}
+        	// remove the word from table keys
+        	wordDocs.remove(sPos);
+        	wordIds.remove(s);
+        	idWords.remove(sPos);
         	
         	// Output to file COMMON
         	writer.write(s + "\n");
@@ -140,7 +153,7 @@ public class FileReader {
 		}
         writer.close();
         System.out.println("Created WORDS file.");
-		
+        
         ArrayList<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
         generateAssociationRule(largeItemset,idWords);
 	}
@@ -240,6 +253,7 @@ public class FileReader {
         while((temp = br.readLine())!=null){
              builder.append(temp);
         }
+        input.close();
         return builder.toString();    
     }
     public static StringBuffer getSplitContent(String filecontent){

@@ -135,6 +135,35 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	/**
+	 * Remove the word in place (mutable operation)
+	 * @param rangeId
+	 * @param bitmask
+	 * @return boolean whether or not the word was in the itemset
+	 */
+	public boolean remove(int rangeId, int bitmask) {
+		int rangePos = getRangePos(rangeId);
+		int[] newRanges, newWords;
+		if (rangePos == -1) {
+			// Doesn't contain that range
+			return false;
+		}
+		// Unset the bits
+		words[rangePos] &= ~bitmask;
+		if (words[rangePos] == 0) {
+			// Remove this range
+			newRanges = Arrays.copyOf(ranges, ranges.length - 1);
+			newWords = Arrays.copyOf(words, words.length - 1);
+			for (int i = rangePos; i < ranges.length - 1; i++) {
+				newRanges[i] = ranges[i+1];
+				newWords[i] = words[i+1];
+			}
+			ranges = newRanges;
+			words = newWords;
+		}
+		return true;
+	}
+	
+	/**
 	 * Get a copy of the itemset with the word removed
 	 * @param rangeId
 	 * @param bitmask
