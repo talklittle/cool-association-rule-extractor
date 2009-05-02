@@ -31,6 +31,7 @@ public class FileReader {
 	// Mapping from a word (String) to its id
 	static HashMap<String, Integer> wordIds=new HashMap<String, Integer>();
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
+	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static int minconf, minsup;
@@ -83,6 +84,7 @@ public class FileReader {
             	    wordsPosIndex++;
             	}
             	wordsInDoc.add(wordIds.get(j));
+            	idWords.put(wordIds.get(j), j);
 
             }
 			docWords.put(docIds.get(aFile), new Itemset(wordsInDoc));
@@ -130,10 +132,11 @@ public class FileReader {
 		}
         writer.close();
 		
-        runApriori(sortedWords,wordIds);
+        HashSet<Set<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
+        generateAssociationRule(largeItemset);
 	}
 	
-	public static void runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public static HashSet<Set<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
 									  wordDocs,
@@ -141,6 +144,11 @@ public class FileReader {
 									  minconf,
 									  minsup);
 		HashSet<Set<Itemset>> largeItemsets = apriori.doApriori(sortedwords,wordIds);
+		return largeItemsets;
+	}
+	public static void generateAssociationRule(HashSet<Set<Itemset>> largeItemset){
+		
+		
 	}
 	
 	/**
