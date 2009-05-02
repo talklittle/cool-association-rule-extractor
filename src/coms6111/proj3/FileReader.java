@@ -55,39 +55,46 @@ public class FileReader {
 		String fileContent=null;
 		StringBuffer content = null;
 	    StringTokenizer st;
+	    // Holds (word => document frequency)
 		TreeMap<String,Integer> sortedWords = new TreeMap<String,Integer>();
 		
 		SortedSet<Integer> wordsInDoc;
-		int wordsPosIndex=0;
+		int wordsPosIndex=0, docsPosIndex=0;
 		for(String aFile:fileList){
-            fileContent=getContentByLocalFile (new File(aFile));
+            docIds.put(aFile, docsPosIndex++);
+			fileContent=getContentByLocalFile (new File(aFile));
             content=getSplitContent(fileContent);
             st = new StringTokenizer(content.toString());
             wordsInDoc = new TreeSet<Integer>();
             while (st.hasMoreTokens()){
             	String j = st.nextToken();
             	if(sortedWords.containsKey(j)){
-            		sortedWords.put(j,sortedWords.get(j)+1);
+            		// You have seen this word before somewhere in some document
             		// wordDocs should also contain the key. update wordDocs
             		int docRange = Itemset.posToRange(docIds.get(aFile));
             		int docBitmask = Itemset.posToBitmask(docIds.get(aFile));
             		wordDocs.put(wordIds.get(j), wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask));
             	}else{
-            		sortedWords.put(j, 1);
+            		// You have never seen this word in any document
+            		sortedWords.put(j, 0); // Initialize count to 0 because it will be incremented below
             		// Give newly found word a new word position
-            		wordIds.put(j, wordsPosIndex);
+            		wordIds.put(j, wordsPosIndex++);
             		// Insert entry (word id, this doc id) to wordDocs
-            		int[] wordRanges = { Itemset.posToRange(wordsPosIndex) };
-            		int[] wordWords = { Itemset.posToBitmask(wordsPosIndex) };
-            		wordDocs.put(wordsPosIndex, new Itemset(wordRanges, wordWords));
-            		
-            	    wordsPosIndex++;
+            		int[] docRanges = { Itemset.posToRange(docIds.get(aFile)) };
+            		int[] docWords = { Itemset.posToBitmask(docIds.get(aFile)) };
+            		wordDocs.put(wordIds.get(j), new Itemset(docRanges, docWords));
             	}
             	wordsInDoc.add(wordIds.get(j));
             	idWords.put(wordIds.get(j), j);
 
             }
+            // update table of (document => set of words it contains)
 			docWords.put(docIds.get(aFile), new Itemset(wordsInDoc));
+			// update document frequency of words
+			for (Iterator<Integer> it = wordsInDoc.iterator(); it.hasNext(); /* */) {
+				String aWord = idWords.get(it.next());
+				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
+			}
 		}
 		
 		// Find the COMMON words

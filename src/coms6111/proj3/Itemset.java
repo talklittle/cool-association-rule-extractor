@@ -82,6 +82,7 @@ public class Itemset implements Comparable<Itemset> {
 			// Goes into a new range
 			newRangeLength = ranges.length + 1;
 		}
+//		System.out.println("ranges.length " + ranges.length + " newRangeLength " + newRangeLength);
 
 		// Insert the new item where it should go
 		newRanges = new int[newRangeLength];
@@ -89,8 +90,13 @@ public class Itemset implements Comparable<Itemset> {
 		boolean inserted = false;
 		int oldI = 0;
 		for (int i = 0; i < newRangeLength; i++) {
-			// Use this condition to find position to insert range id
-			if (!inserted && ranges[oldI] >= range) {
+			// Use this set of conditionals to find position to insert range id
+			if (!inserted && i == newRangeLength - 1 && newRangeLength > ranges.length) {
+				// The new range goes at the end
+				newRanges[i] = range;
+				newWords[i] = bitmask;
+				inserted = true;
+			} else if (!inserted && ranges[oldI] >= range) {
 				newRanges[i] = range;
 				if (ranges[oldI] == range) {
 					// New bit goes into existing range
@@ -106,7 +112,6 @@ public class Itemset implements Comparable<Itemset> {
 				oldI++;
 			}
 		}
-		
 		return new Itemset(newRanges, newWords);
 	}
 	
