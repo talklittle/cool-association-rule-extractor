@@ -28,7 +28,7 @@ public class Bits {
 	private static void initFirstBit256() {
 		firstBit256 = new HashMap<Integer, Integer>();
 		firstBit256.put(0, 0);
-		for (int i = 0x80; i >= 1; i >>= 1) {
+		for (int i = 0x80; i >= 1; i = i >>> 1) {
 			for (int j = i; j < 2*i; j++) {
 				firstBit256.put(j, i);
 			}
@@ -51,21 +51,21 @@ public class Bits {
 		numBits256 = new HashMap<Integer, Integer>();
 		numBits256.put(0, 0);
 		for (int i = 1; i <= 0xFF; i++) {
-			numBits256.put(i, (i & 1) + numBits256.get(i >> 1));
+			numBits256.put(i, (i & 1) + numBits256.get(i >>> 1));
 		}
 	}
 	
 	private static void initPosFromLeft() {
 		posFromLeft = new HashMap<Integer, Integer>();
 		for (int i = 0; i < 31; i++) {
-			posFromLeft.put((0x80000000 >> i), i);
+			posFromLeft.put((0x80000000 >>> i), i);
 		}
 	}
 	
 	public static int getFirstBit(int num) {
 		// num is 32-bit so need to check 4 groups of 8 bits
 		for (int i = 3; i >= 0; i--) {
-			int tmp = firstBit256.get((num >> (8*i)) & 0xFF);
+			int tmp = firstBit256.get((num >>> (8*i)) & 0xFF);
 			if (tmp != 0)
 				return tmp << (8*i);
 		}
@@ -75,7 +75,7 @@ public class Bits {
 	public static int getLastBit(int num) {
 		// num is 32-bit so need to check 4 groups of 8 bits
 		for (int i = 0; i < 4; i++) {
-			int tmp = lastBit256.get((num >> (8*i)) & 0xFF);
+			int tmp = lastBit256.get((num >>> (8*i)) & 0xFF);
 			if (tmp != 0)
 				return tmp << (8*i);
 		}
@@ -86,7 +86,7 @@ public class Bits {
 		int returnMe = 0;
 		// num is 32-bit so need to check 4 groups of 8 bits
 		for (int i = 0; i < 4; i++) {
-			returnMe += numBits256.get((num >> (8*i)) & 0xFF);
+			returnMe += numBits256.get((num >>> (8*i)) & 0xFF);
 		}
 		return returnMe;
 	}
