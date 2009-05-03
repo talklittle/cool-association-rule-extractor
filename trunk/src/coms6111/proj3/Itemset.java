@@ -59,69 +59,54 @@ public class Itemset implements Comparable<Itemset> {
 	
 	public Itemset chopLastBit() {
 		Itemset returnMe;
-		int lastRange = ranges.length - 1;
-		if (lastRange < 0)
+		if (words.length == 0)
 			return null;
-		// The last bit is in a range by itself, so chop off the last range
-		if (Bits.singleBit.contains(ranges[lastRange])) {
+		int lastWords = words[words.length - 1];
+		if (Bits.singleBit.contains(lastWords)) {
+			// The last bit is in a range by itself, so chop off the last range
 			returnMe = new Itemset(this, ranges.length-1);
 		} else {
 			returnMe = new Itemset(this, ranges.length);
-			// Chop off the final bit using XOR
-			returnMe.ranges[ranges.length-1] ^= Bits.getLastBit(ranges[ranges.length-1]);
+			// Chop off the final bit
+			returnMe.words[words.length-1] &= ~Bits.getLastBit(lastWords);
 		}
 		return returnMe;
 	}
 	
 	/**
 	 * Add a new item to a copy of the Itemset and return the copy.
-	 * @param range Range id of new item
+	 * @param rangeId Range id of new item
 	 * @param bitmask Bitmask (single bit set) of the new item
 	 * @return Copy of this Itemset with new item inserted
 	 */
-	public Itemset addAndCopy(int range, int bitmask) {
+	public Itemset addAndCopy(int rangeId, int bitmask) {
 		int[] newRanges, newWords;
 		
 		int newRangeLength;
-		int rangePos;
-		rangePos = getRangePos(range);
-		if (rangePos != -1) {
-			// Goes into existing range
-			newRangeLength = ranges.length;
-		} else {
+		int rangeInsertionPos = getRangeInsertionPos(rangeId);
+		if (rangeInsertionPos == ranges.length || ranges[rangeInsertionPos] != rangeId) {
 			// Goes into a new range
 			newRangeLength = ranges.length + 1;
+		} else {
+			// Goes into an existing range
+			newRangeLength = ranges.length;
 		}
 //		System.out.println("ranges.length " + ranges.length + " newRangeLength " + newRangeLength);
 
-		// Insert the new item where it should go
-		newRanges = new int[newRangeLength];
-		newWords = new int[newRangeLength];
-		boolean inserted = false;
-		int oldI = 0;
-		for (int i = 0; i < newRangeLength; i++) {
-			// Use this set of conditionals to find position to insert range id
-			if (!inserted && i == newRangeLength - 1 && newRangeLength > ranges.length) {
-				// The new range goes at the end
-				newRanges[i] = range;
-				newWords[i] = bitmask;
-				inserted = true;
-			} else if (!inserted && ranges[oldI] >= range) {
-				newRanges[i] = range;
-				if (ranges[oldI] == range) {
-					// New bit goes into existing range
-					newWords[i] = words[oldI++] | bitmask;
-				} else {
-					// New bit goes into a new range
-					newWords[i] = bitmask;
-				}
-				inserted = true;
-			} else {
-				newRanges[i] = ranges[oldI];
-				newWords[i] = words[oldI];
-				oldI++;
+		newRanges = Arrays.copyOf(ranges, newRangeLength);
+		newWords = Arrays.copyOf(words, newRangeLength);
+		if (newRangeLength > ranges.length) {
+			// Shift everything to the right to make room
+			for (int i = newRangeLength - 1; i > rangeInsertionPos; i--) {
+				newRanges[i] = newRanges[i-1];
+				newWords[i] = newWords[i-1];
 			}
+			newRanges[rangeInsertionPos] = rangeId;
+			newWords[rangeInsertionPos] = 0;
 		}
+		// Insert the bitmask
+		newWords[rangeInsertionPos] |= bitmask;
+		
 		return new Itemset(newRanges, newWords);
 	}
 	
@@ -142,6 +127,14 @@ public class Itemset implements Comparable<Itemset> {
 		if (rangePos == -1)
 			return false;
 		return (words[rangePos] & bitmask) == bitmask;
+	}
+	
+	public boolean containsWordIds(List<Integer> wordIds) {
+		for (int wordId : wordIds) {
+			if (!containsWords(Itemset.posToRange(wordId), Itemset.posToBitmask(wordId)))
+				return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -217,7 +210,13 @@ public class Itemset implements Comparable<Itemset> {
 	private List<Integer> rangeToWordIds(int rangeId) {
 		ArrayList<Integer> wordIds = new ArrayList<Integer>();
 		int base = rangeId * 32;
-		int bitmask = words[getRangePos(rangeId)];
+		int rangePos = getRangePos(rangeId);
+		if (rangePos == -1) {
+			System.err.println("ERROR: rangeToWordIds: Bad rangeId "+rangeId);
+			return wordIds;
+		}
+		
+		int bitmask = words[rangePos];
 		int firstbit;
 		
 		while (bitmask != 0) {
@@ -243,12 +242,35 @@ public class Itemset implements Comparable<Itemset> {
 			if (rangeId > ranges[mid]) {
 				left = mid+1;
 			} else if (rangeId < ranges[mid]) {
-				right = mid-1;
+				right = mid;
 			} else {
 				return mid;
 			}
 		}
 		return -1;
+	}
+	
+	/**
+	 * Given a rangeId, find the position in the current ranges[] array
+	 * where the Id should be inserted. If ranges[retval] != rangeId,
+	 * that means you need to shift everything from position retval 
+	 * to the right before inserting.
+	 */
+	private int getRangeInsertionPos(int rangeId) {
+		int left, mid, right;
+		left = 0;
+		right = ranges.length;
+		while (left < right) {
+			mid = left + (right - left) / 2;
+			if (rangeId > ranges[mid]) {
+				left = mid+1;
+			} else if (rangeId < ranges[mid]) {
+				right = mid;
+			} else {
+				return mid;
+			}
+		}
+		return left;
 	}
 	
 	/**
@@ -259,10 +281,7 @@ public class Itemset implements Comparable<Itemset> {
 	 * @return
 	 */
 	public static int posToRange(int i) {
-		if (i % 32 != 0)
-			return (i/32) + 1;
-		else
-			return i/32;
+		return i/32;
 	}
 	
 	/**
@@ -285,7 +304,7 @@ public class Itemset implements Comparable<Itemset> {
 		}
 		if (ranges.length != o.ranges.length || words.length != o.words.length)
 			return false;
-		// Compares 32 bits at a time :)
+		// Compares 32 bits at a time
 		for (int i = 0; i < words.length; i++) {
 			if (words[i] != o.words[i] || ranges[i] != o.ranges[i])
 				return false;
@@ -313,17 +332,26 @@ public class Itemset implements Comparable<Itemset> {
 			// Java treats MSB as a sign bit, so need to convert ints to longs
 			long myI, otherI;
 			myI = words[i] & 0x7FFFFFFF;
-			if (words[i] < 0)
-				myI += 0x80000000;
+			if ((words[i] & 0x80000000) == 0x80000000)
+				myI += 0x80000000L;
 			otherI = words[i] & 0x7FFFFFFF;
-			if (o.words[i] < 0)
-				otherI += 0x80000000;
+			if ((o.words[i] & 0x80000000) == 0x80000000)
+				otherI += 0x80000000L;
 			// words[] holds bitmasks, so a numerically larger value comes first
-			if (myI < otherI)
-				return 1;
-			else if (myI > otherI)
+			if (myI > otherI)
 				return -1;
+			else if (myI < otherI)
+				return 1;
 		}
 		return 0;
+	}
+	
+	public void debugPrintWords(Map<Integer, String> idWords) {
+		List<Integer> wordIds = this.getWordIds();
+		System.out.print("DEBUG: Itemset (len "+wordIds.size()+"): ");
+		for (Integer wordId : wordIds) {
+			System.out.print(idWords.get(wordId) + " ("+wordId+"), ");
+		}
+		System.out.println();
 	}
 }
