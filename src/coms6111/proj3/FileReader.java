@@ -213,6 +213,7 @@ public class FileReader {
 					Itemset wordItem = new Itemset(rangeId, wordId);
 					double wordSupport=getItemsetSupport(wordItem);
 					double confidence=itemsetSupport/wordSupport;
+					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
 					if(confidence>minconf){
 						if(ids.size()==3){
 							if(word.equals(words[0])){

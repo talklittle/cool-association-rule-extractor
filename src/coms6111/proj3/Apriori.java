@@ -27,6 +27,9 @@ public class Apriori {
 	private HashMap<Integer, Itemset> wordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
+	// INSTRUMENTATION
+	long instrAprioriPrune = 0, instrAprioriPruneCount = 0;
+	
 	public Apriori(HashMap<String, Integer> newDocIds,
 			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, String> newIdWords,
@@ -89,11 +92,16 @@ public class Apriori {
 //			}
 			if (Lk == null) {
 				// No more large itemsets were found.
+				System.out.println("DEBUG: doApriori: break because no more large itemsets. k=" + k);
 				break;
 			} else {
 				L.add(Lk);
 			}
 		}
+		
+		// DEBUG
+		System.out.println("aprioriGenPrune: " + instrAprioriPrune+"ms " + instrAprioriPruneCount);
+		
 		return L;
 	}
 	
@@ -106,41 +114,20 @@ public class Apriori {
 		// and try to combine itemsets with those that come after,
 		// if they share the same prefix k-2 bits
 		for (Itemset kmin1Itemset : prevL) {
-//			System.out.println("DEBUG: aprioriGen: kmin1Itemset # words: " + kmin1Itemset.getNumWords()
-//					+ " # ranges: " + kmin1Itemset.ranges.length);
+//			System.out.println("DEBUG: aprioriGen: kmin1Itemset:");
+//			kmin1Itemset.debugPrintWords(idWords);
 			Itemset currPrefix = kmin1Itemset.chopLastBit();
+//			System.out.println("currPrefix:");
+//			currPrefix.debugPrintWords(idWords);
+			if (kmin1Itemset.getNumWords() != currPrefix.getNumWords() + 1) {
+				System.err.println("ERROR: aprioriGen: kmin1Itemset #words="
+						+kmin1Itemset.getNumWords()
+						+" currPrefix #words="+currPrefix.getNumWords());
+			}
+			
 			if (!currPrefix.equals(groupPrefix)) {
-				if (groupCandidates.size() >= 2) {
-					// Split off the previous group, combine and try add to newCandidates
-					for (Iterator<Itemset> it = groupCandidates.iterator(); it.hasNext(); /* */) {
-						Itemset a = it.next();
-						SortedSet<Itemset> bigger = groupCandidates.tailSet(a);
-						for (Iterator<Itemset> itb = bigger.iterator(); itb.hasNext(); /* */) {
-							Itemset b = itb.next();
-							int bLastRange = b.ranges[b.ranges.length-1];
-							int bLastBit = Bits.getLastBit(b.words[b.words.length-1]);
-							// Combine a and b
-							Itemset combined = a.addAndCopy(bLastRange, bLastBit);
-							
-							if (FileReader.getItemsetSupport(combined) < minsup) {
-								break;
-							}
-							
-							// Pruning based on whether all subsets are part of the k-1 large itemsets
-							int numLargeSubsetsOfCandidate = 0;
-							for (Itemset kmin1Itemset2 : prevL) {
-								if (combined.contains(kmin1Itemset2))
-									numLargeSubsetsOfCandidate++;
-							}
-							if (numLargeSubsetsOfCandidate < combination(k, k-1)) {
-								break;
-							}
-							
-							// Survived pruning so add to newCandidates
-							newCandidates.add(combined);
-						}
-					}
-				}
+				// Try to combine the current group (if it has >= 2 members)
+				newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
 				// Initialize the next group's Set
 				groupPrefix = currPrefix;
 				groupCandidates = new TreeSet<Itemset>();
@@ -148,14 +135,96 @@ public class Apriori {
 			groupCandidates.add(kmin1Itemset);
 		}
 		
+		newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
+		
 		// Finally check if newCandidates is empty. If so then the previous set of
 		// large itemsets is the final one.
 		if (newCandidates.size() > 0) {
 			return newCandidates;
 		} else {
 			// Ck == prevL
+			System.out.println("DEBUG: aprioriGen: newCandidates is empty at k="+k);
 			return null;
 		}
+	}
+	
+	private SortedSet<Itemset> aprioriGenPrune(SortedSet<Itemset> groupCandidates, SortedSet<Itemset> prevL, int k) {
+		TreeSet<Itemset> newCandidates = new TreeSet<Itemset>();
+		
+		instrAprioriPrune = System.currentTimeMillis() - instrAprioriPrune;
+		instrAprioriPruneCount++;
+		
+		if (groupCandidates.size() >= 2) {
+			// Split off the previous group, combine and try add to newCandidates
+			Itemset a = null, afterA = null;
+			for (Iterator<Itemset> it = groupCandidates.iterator(); it.hasNext(); /* */) {
+				if (a == null) {
+					a = it.next();
+					continue;
+				} else if (afterA == null) {
+					afterA = it.next();
+				} else {
+					a = afterA;
+					afterA = it.next();
+				}
+
+				SortedSet<Itemset> bigger = groupCandidates.tailSet(afterA);
+				for (Iterator<Itemset> itb = bigger.iterator(); itb.hasNext(); /* */) {
+					Itemset b = itb.next();
+					int bLastRange = b.ranges[b.ranges.length-1];
+					int bLastBit = Bits.getLastBit(b.words[b.words.length-1]);
+					if (bLastBit == 0) {
+						System.err.println("ERROR: aprioriGenPrune: bLastBit is 0");
+					}
+					// Combine a and b
+					Itemset combined = a.addAndCopy(bLastRange, bLastBit);
+
+//					// DEBUG
+//					List<Integer> azzz = a.getWordIds();
+//					List<Integer> bzzz = b.getWordIds();
+//					System.out.println("DEBUG: a numwords "+a.getNumWords()+" lastRange "+a.ranges[a.ranges.length-1]
+//					                 + " contains b:" + a.containsWordIds(bzzz));
+//					a.debugPrintWords(idWords);
+//					System.out.println("DEBUG: b numwords "+b.getNumWords()+" lastRange "+b.ranges[b.ranges.length-1]
+//					                 + " contains a:" + b.containsWordIds(azzz));
+//					b.debugPrintWords(idWords);
+//					System.out.println("DEBUG: c numwords "+combined.getNumWords()
+//							         + " contains a:" + combined.containsWordIds(azzz)
+//							         + " contains b:" + combined.containsWordIds(bzzz));
+//					combined.debugPrintWords(idWords);
+//					System.out.println("DEBUG: c " + combined.ranges[0] + " " + combined.ranges[1]);
+//					System.out.println("DEBUG: c " + combined.words[0] + " " + combined.words[1]);
+					
+					
+					if (FileReader.getItemsetSupport(combined) < minsup) {
+						System.out.println("DEBUG: aprioriGen: support < minsup for following line:");
+						combined.debugPrintWords(idWords);
+						break;
+					}
+					
+					// Pruning based on whether all subsets are part of the k-1 large itemsets
+					int numLargeSubsetsOfCandidate = 0;
+					for (Itemset kmin1Itemset2 : prevL) {
+						if (combined.contains(kmin1Itemset2)) {
+							numLargeSubsetsOfCandidate++;
+						}
+					}
+					if (numLargeSubsetsOfCandidate < combination(k, k-1)) {
+						System.out.println("DEBUG: aprioriGen: not all subsets are in k-1. k="+k+" num="
+								+numLargeSubsetsOfCandidate+" expected="+combination(k,k-1));
+						combined.debugPrintWords(idWords);
+						break;
+					}
+					
+					// Survived pruning so add to newCandidates
+					newCandidates.add(combined);
+					System.out.println("DEBUG: aprioriGen: added new candidate:");
+					combined.debugPrintWords(idWords);
+				}
+			}
+		}
+		instrAprioriPrune = System.currentTimeMillis() - instrAprioriPrune;
+		return newCandidates;
 	}
 	
 	/**
@@ -188,7 +257,7 @@ public class Apriori {
 			
 			if (FileReader.getItemsetSupport(largeItem) >= minsup) {
 				result.add(largeItem);
-				System.out.println("DEBUG: getLarge1Itemsets: added word " + idWords.get(position));
+//				System.out.println("DEBUG: getLarge1Itemsets: added word " + idWords.get(position));
 			}
 		}
 		
