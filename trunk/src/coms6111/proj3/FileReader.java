@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,6 +35,10 @@ public class FileReader {
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static double minsup, minconf;
+	
+	// INSTRUMENTATION
+	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
+	static long instrItemsetSupport = 0, instrItemsetSupportCount = 0;
 	
 	public static void usage() {
 		System.out.println("Usage:");
@@ -62,6 +67,8 @@ public class FileReader {
 			usage();
 			System.exit(1);
 		}
+		
+		instrIndex = System.currentTimeMillis();
 		
 		// Initialize the Bits tables
 		Bits.init();
@@ -114,8 +121,10 @@ public class FileReader {
 				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
 			}
 		}
-		System.out.println("Created index in memory.");
+		instrIndex = System.currentTimeMillis() - instrIndex;
+		System.out.println("Created index in memory. ("+instrIndex+" ms)");
 		
+		instrCommon = System.currentTimeMillis();
 		// Find the COMMON words
 		Map<String, Integer> resultMap = sortByValue(sortedWords,true);
 		Set<String> ss = resultMap.keySet();
@@ -154,9 +163,11 @@ public class FileReader {
         	writer.write(s + "\n");
 		}
         writer.close();
-        System.out.println("Created COMMON file.");
+        instrCommon = System.currentTimeMillis() - instrCommon;
+        System.out.println("Created COMMON file. ("+instrCommon+" ms)");
         
-		// Output the sorted WORDS (excluding COMMON)
+		instrWords = System.currentTimeMillis();
+        // Output the sorted WORDS (excluding COMMON)
         File WORDS = new File("WORDS");
         if (WORDS.exists())
         	WORDS.delete();
@@ -166,7 +177,9 @@ public class FileReader {
 			writer.write(it.next() + "\n");
 		}
         writer.close();
-        System.out.println("Created WORDS file.");
+        instrWords = System.currentTimeMillis() - instrWords;
+        System.out.println("Created WORDS file. ("+instrWords+" ms)");
+        System.out.println();
         
         ///////////////////////////
         // Run Apriori algorithm
@@ -174,6 +187,8 @@ public class FileReader {
         
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
         generateAssociationRule(largeItemset,idWords);
+        
+//        System.out.println("instrItemsetSupport: " + instrItemsetSupport+"ms "+ instrItemsetSupportCount);
 	}
 	
 	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
@@ -189,23 +204,27 @@ public class FileReader {
 	}
 
 	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset, HashMap<Integer, String> idWords){
+		ArrayList<Rule> rules = new ArrayList<Rule>(); 
+		
 		for(int i=2;i<=3;i++){
-			System.out.println("DEBUG: generateAssociationRule: i=" + i);
+//			System.out.println("DEBUG: generateAssociationRule: i=" + i);
 			if (largeItemset.size() <= i) {
-				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
+//				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
 				break;
 			}
 			Set<Itemset> beginSet=largeItemset.get(i);
-			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext();){
+			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext(); /* */){
+//				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
 				String[] words=new String[i];
 				List<Integer> ids=itset.getWordIds();
-				for(int j=0;j<ids.size();i++){
+				for(int j=0;j<ids.size();j++){
 					words[j]=idWords.get(ids.get(j));
 				}
 				
 				double itemsetSupport=getItemsetSupport(itset);
 				for (int wId : ids){
+//					System.out.println("DEBUG: generateAssociationRule: looking at next word");
 					
 					String word=idWords.get(wId);
 					int[] rangeId= { Itemset.posToRange(wId) };
@@ -213,24 +232,29 @@ public class FileReader {
 					Itemset wordItem = new Itemset(rangeId, wordId);
 					double wordSupport=getItemsetSupport(wordItem);
 					double confidence=itemsetSupport/wordSupport;
-					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
+//					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
 					if(confidence>minconf){
 						if(ids.size()==3){
 							if(word.equals(words[0])){
-								System.out.println(word+"=>"+words[1]+words[2]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
+								rules.add(new Rule(confidence,
+										"["+word+"] => ["+words[1]+", "+words[2]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
 								
 							}else if(word.equals(words[1])){
-								System.out.println(word+"=>"+words[0]+words[2]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
+								rules.add(new Rule(confidence,
+										"["+word+"] => ["+words[0]+", "+words[2]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
 								
 							}else if(word.equals(words[2])){
-								System.out.println(word+"=>"+words[0]+words[1]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
+								rules.add(new Rule(confidence,
+										"["+word+"] => ["+words[0]+", "+words[1]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
 							}
 							
 						}else if(ids.size()==2){
 							if(word.equals(words[0])){
-								System.out.println(word+"=>"+words[1]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
+								rules.add(new Rule(confidence,
+										"["+word+"] => ["+words[1]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
 							}else if(word.equals(words[1])){
-								System.out.println(word+"=>"+words[0]+"("+"Conf:"+confidence+"Supp:"+itemsetSupport+")");
+								rules.add(new Rule(confidence,
+										"["+word+"] => ["+words[0]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
 							}
 						}
 						
@@ -241,6 +265,12 @@ public class FileReader {
 				}
 				
 			}
+		}
+		
+		Rule[] outputRules = rules.toArray(new Rule[0]);
+		Arrays.sort(outputRules);
+		for (int i = outputRules.length-1; i >= 0; i--) {
+			System.out.println(outputRules[i].toString());
 		}
 	}
 	
@@ -290,6 +320,7 @@ public class FileReader {
         input.close();
         return builder.toString();    
     }
+    
     public static StringBuffer getSplitContent(String filecontent){
     	StringBuffer output = new StringBuffer(filecontent.length());
     	for(int i=0;i<filecontent.length();i++){
@@ -301,6 +332,7 @@ public class FileReader {
         }
     	return output;
     }
+    
     public static Map<String, Integer> sortByValue(Map<String, Integer> map , final boolean reverse){   
         List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(map.entrySet());   
         Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {   
@@ -335,6 +367,10 @@ public class FileReader {
     }
     public static double getItemsetSupport(Itemset itset){
     	double support = 0;
+    	
+//    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
+//    	instrItemsetSupportCount++;
+    	
 		for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
 			Itemset wordsInADoc = wiadIt.next();
 			if (wordsInADoc.contains(itset)) {
@@ -342,6 +378,10 @@ public class FileReader {
 			}
 		}
 		support /= docWords.size(); // Ratio of containing transactions
+		
+//		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
+//		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
+		
     	return support;
     }
    
