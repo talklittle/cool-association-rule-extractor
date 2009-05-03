@@ -28,7 +28,7 @@ public class Apriori {
 	private HashMap<Integer, Itemset> docWords;
 	
 	// INSTRUMENTATION
-	long instrAprioriPrune = 0, instrAprioriPruneCount = 0;
+	static long instrAprioriPrune = 0, instrAprioriPruneCount = 0;
 	
 	public Apriori(HashMap<String, Integer> newDocIds,
 			       HashMap<String, Integer> newWordIds,
@@ -74,7 +74,7 @@ public class Apriori {
 		L.add(large1Itemsets); // 1-itemsets; gotten from external
 		
 		for (int k = 2; k<=3; k++) {
-			System.out.println("DEBUG: doApriori: k=" + k);
+//			System.out.println("DEBUG: doApriori: k=" + k);
 			Lk = aprioriGen(L.get(k-1), k); // Will update Ck
 //			for (Iterator<String> it = docIds.keySet().iterator(); it.hasNext(); /* */) {
 //				String transaction = it.next();
@@ -92,7 +92,7 @@ public class Apriori {
 //			}
 			if (Lk == null) {
 				// No more large itemsets were found.
-				System.out.println("DEBUG: doApriori: break because no more large itemsets. k=" + k);
+//				System.out.println("DEBUG: doApriori: break because no more large itemsets. k=" + k);
 				break;
 			} else {
 				L.add(Lk);
@@ -100,7 +100,7 @@ public class Apriori {
 		}
 		
 		// DEBUG
-		System.out.println("aprioriGenPrune: " + instrAprioriPrune+"ms " + instrAprioriPruneCount);
+//		System.out.println("aprioriGenPrune: " + instrAprioriPrune+"ms " + instrAprioriPruneCount);
 		
 		return L;
 	}
@@ -143,7 +143,7 @@ public class Apriori {
 			return newCandidates;
 		} else {
 			// Ck == prevL
-			System.out.println("DEBUG: aprioriGen: newCandidates is empty at k="+k);
+//			System.out.println("DEBUG: aprioriGen: newCandidates is empty at k="+k);
 			return null;
 		}
 	}
@@ -197,8 +197,8 @@ public class Apriori {
 					
 					
 					if (FileReader.getItemsetSupport(combined) < minsup) {
-						System.out.println("DEBUG: aprioriGen: support < minsup for following line:");
-						combined.debugPrintWords(idWords);
+//						System.out.println("DEBUG: aprioriGen: support < minsup for following line:");
+//						combined.debugPrintWords(idWords);
 						break;
 					}
 					
@@ -210,16 +210,16 @@ public class Apriori {
 						}
 					}
 					if (numLargeSubsetsOfCandidate < combination(k, k-1)) {
-						System.out.println("DEBUG: aprioriGen: not all subsets are in k-1. k="+k+" num="
-								+numLargeSubsetsOfCandidate+" expected="+combination(k,k-1));
-						combined.debugPrintWords(idWords);
+//						System.out.println("DEBUG: aprioriGen: not all subsets are in k-1. k="+k+" num="
+//								+numLargeSubsetsOfCandidate+" expected="+combination(k,k-1));
+//						combined.debugPrintWords(idWords);
 						break;
 					}
 					
 					// Survived pruning so add to newCandidates
 					newCandidates.add(combined);
-					System.out.println("DEBUG: aprioriGen: added new candidate:");
-					combined.debugPrintWords(idWords);
+//					System.out.println("DEBUG: aprioriGen: added new candidate:");
+//					combined.debugPrintWords(idWords);
 				}
 			}
 		}
