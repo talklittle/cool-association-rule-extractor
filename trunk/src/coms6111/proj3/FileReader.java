@@ -86,7 +86,7 @@ public class FileReader {
 		SortedSet<Integer> wordsInDoc;
 		int wordsPosIndex=0, docsPosIndex=0;
 		for(String aFile:fileList){
-			System.out.println("DEBUG: main: file "+aFile+" pos="+docsPosIndex);
+//			System.out.println("DEBUG: main: file "+aFile+" pos="+docsPosIndex);
             docIds.put(aFile, docsPosIndex++);
 			fileContent=getContentByLocalFile (new File(aFile));
             content=getSplitContent(fileContent);
@@ -101,6 +101,11 @@ public class FileReader {
             		int docBitmask = Itemset.posToBitmask(docIds.get(aFile));
             		Itemset putMe = wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask);
             		wordDocs.put(wordIds.get(j), putMe);
+//            		// DEBUG
+//            		if (j.equals("protestant")) {
+//            			System.out.println("DEBUG: add protestant count="+wordDocs.get(wordIds.get(j)).getNumWords()
+//            					+ " docId="+docIds.get(aFile));
+//            		}
             	}else{
             		// You have never seen this word in any document
             		sortedWords.put(j, 0); // Initialize count to 0 because it will be incremented below
@@ -151,15 +156,21 @@ public class FileReader {
         	String s = it.next();
         	int sPos = wordIds.get(s);
         	// Remove the common word from WORDS
-        	sortedWords.remove(s);
+        	if (sortedWords.remove(s) == null) {
+        		System.err.println("ERROR: Could not remove COMMON word "+s+" pos="+sPos
+        				+" from sortedWords");
+        	}
         	
         	// remove the word from all Transactions
         	Itemset transaction;
         	for (Integer transactionId : docIds.values()) {
         		transaction = docWords.get(transactionId);
         		if (!transaction.remove(Itemset.posToRange(sPos), Itemset.posToBitmask(sPos))) {
-        			System.err.println("WARN: Eliminate COMMON word "+s+" pos="+sPos
-        					+" from transaction "+transactionId+" failed");
+//        			System.out.println("DEBUG: Eliminate COMMON word "+s+" pos="+sPos
+//        					+" from transaction "+transactionId+" failed");
+        		} else {
+//        			System.out.println("DEBUG: Eliminated COMMON word "+s+" pos="+sPos
+//        					+" from transaction "+transactionId);
         		}
         	}
         	// remove the word from table keys
@@ -220,20 +231,20 @@ public class FileReader {
 //				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
 				break;
 			}
-			Set<Itemset> beginSet=largeItemset.get(i);
-			for(Iterator<Itemset> it=beginSet.iterator();it.hasNext(); /* */){
+			SortedSet<Itemset> aLargeItemsetSet = largeItemset.get(i);
+			for(Iterator<Itemset> it=aLargeItemsetSet.iterator(); it.hasNext(); /* */){
 //				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
 				String[] words=new String[i];
-				List<Integer> ids=itset.getIds();
-				for(int j=0;j<ids.size();j++){
+				List<Integer> ids = itset.getIds();
+				for(int j=0; j<ids.size(); j++){
 					words[j]=idWords.get(ids.get(j));
 				}
 				
 				double itemsetSupport=getItemsetSupport(itset);
-				System.out.println("DEBUG: generateAssociationRule: itset (next line) supp:"+itemsetSupport);
-				itset.debugPrintWords(idWords);
-				for (int wId : ids){
+//				System.out.println("DEBUG: generateAssociationRule: itset (next line) supp:"+itemsetSupport);
+//				itset.debugPrintWords(idWords);
+				for (Integer wId : ids){
 //					System.out.println("DEBUG: generateAssociationRule: looking at next word");
 					
 					String word=idWords.get(wId);
@@ -242,7 +253,9 @@ public class FileReader {
 					Itemset wordItem = new Itemset(rangeId, wordId);
 					double wordSupport=getItemsetSupport(wordItem);
 					double confidence=itemsetSupport/wordSupport;
-					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
+//					System.out.println("DEBUG: generateAssociationRule: word: "+word+" wordId="+wId+" wordsupp:"+wordSupport+" conf:"+confidence
+//							+" wordItem.size="+wordItem.getNumWords());
+//					System.out.println("DEBUG: generateAssociationRule: docCount="+wordDocs.get(wId).getNumWords());
 					if(confidence>minconf){
 						if(ids.size()==3){
 							if(word.equals(words[0])){
@@ -277,6 +290,7 @@ public class FileReader {
 			}
 		}
 		
+		// Print in decreasing order of confidence
 		Rule[] outputRules = rules.toArray(new Rule[0]);
 		Arrays.sort(outputRules);
 		for (int i = outputRules.length-1; i >= 0; i--) {
@@ -334,7 +348,7 @@ public class FileReader {
     public static StringBuffer getSplitContent(String filecontent){
     	StringBuffer output = new StringBuffer(filecontent.length());
     	for(int i=0;i<filecontent.length();i++){
-    		if (Character.isLetter(filecontent.charAt(i)) && filecontent.charAt(i)<128) {
+    		if (Character.isLetter(filecontent.charAt(i))) {
                 output.append(Character.toLowerCase(filecontent.charAt(i)));
             }else{
             	output.append(' ');
@@ -387,7 +401,7 @@ public class FileReader {
             return 0.0;
     	}
 
-    	support = ((double)docIdsOfThisItset.size()) / ((double)docWords.size()); // Ratio of containing transactions
+    	support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing transactions
 		
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
