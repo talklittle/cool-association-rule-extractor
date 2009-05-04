@@ -324,9 +324,12 @@ public class FileReader {
 						if(word.equals(words[0])){
 							int id1=wordIds.get(words[1]);
 							int id2=wordIds.get(words[2]);
-							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
-							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
-							Itemset wordsItem=new Itemset(rangeId, wordId);
+							int[] rangeId1={Itemset.posToRange(id1)};
+							int[] wordId1={Itemset.posToBitmask(id1)};
+							int rangeId2=Itemset.posToRange(id2);
+							int wordId2=Itemset.posToBitmask(id2);
+							Itemset wordsItem=new Itemset(rangeId1, wordId1);
+							wordsItem=wordsItem.addAndCopy(rangeId2,wordId2);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
@@ -340,9 +343,12 @@ public class FileReader {
 						}else if(word.equals(words[1])){
 							int id1=wordIds.get(words[0]);
 							int id2=wordIds.get(words[2]);
-							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
-							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
-							Itemset wordsItem=new Itemset(rangeId, wordId);
+							int[] rangeId1={Itemset.posToRange(id1)};
+							int[] wordId1={Itemset.posToBitmask(id1)};
+							int rangeId2=Itemset.posToRange(id2);
+							int wordId2=Itemset.posToBitmask(id2);
+							Itemset wordsItem=new Itemset(rangeId1, wordId1);
+							wordsItem=wordsItem.addAndCopy(rangeId2,wordId2);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
@@ -357,9 +363,12 @@ public class FileReader {
 						}else if(word.equals(words[2])){
 							int id1=wordIds.get(words[0]);
 							int id2=wordIds.get(words[1]);
-							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
-							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
-							Itemset wordsItem=new Itemset(rangeId, wordId);
+							int[] rangeId1={Itemset.posToRange(id1)};
+							int[] wordId1={Itemset.posToBitmask(id1)};
+							int rangeId2=Itemset.posToRange(id2);
+							int wordId2=Itemset.posToBitmask(id2);
+							Itemset wordsItem=new Itemset(rangeId1, wordId1);
+							wordsItem=wordsItem.addAndCopy(rangeId2,wordId2);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
