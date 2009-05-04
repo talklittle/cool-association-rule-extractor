@@ -248,43 +248,91 @@ public class FileReader {
 //					System.out.println("DEBUG: generateAssociationRule: looking at next word");
 					
 					String word=idWords.get(wId);
-					int[] rangeId= { Itemset.posToRange(wId) };
-					int[] wordId= { Itemset.posToBitmask(wId) };
-					Itemset wordItem = new Itemset(rangeId, wordId);
-					double wordSupport=getItemsetSupport(wordItem);
-					double confidence=itemsetSupport/wordSupport;
+					//int[] rangeId= { Itemset.posToRange(wId) };
+					//int[] wordId= { Itemset.posToBitmask(wId) };
+					//Itemset wordItem = new Itemset(rangeId, wordId);
+					//double wordSupport=getItemsetSupport(wordItem);
+					//double confidence=itemsetSupport/wordSupport;
 //					System.out.println("DEBUG: generateAssociationRule: word: "+word+" wordId="+wId+" wordsupp:"+wordSupport+" conf:"+confidence
 //							+" wordItem.size="+wordItem.getNumWords());
 //					System.out.println("DEBUG: generateAssociationRule: docCount="+wordDocs.get(wId).getNumWords());
-					if(confidence>minconf){
-						if(ids.size()==3){
-							if(word.equals(words[0])){
+					if(ids.size()==3){
+						if(word.equals(words[0])){
+							int id1=wordIds.get(words[1]);
+							int id2=wordIds.get(words[2]);
+							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
+							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
+							Itemset wordsItem=new Itemset(rangeId, wordId);
+							double wordsSupport=getItemsetSupport(wordsItem);
+							double confidence=itemsetSupport/wordsSupport;
+							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+word+"] => ["+words[1]+", "+words[2]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
-								
-							}else if(word.equals(words[1])){
+										"["+words[1]+words[2]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+								}else{
+									break;
+								}
+						}else if(word.equals(words[1])){
+							int id1=wordIds.get(words[0]);
+							int id2=wordIds.get(words[2]);
+							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
+							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
+							Itemset wordsItem=new Itemset(rangeId, wordId);
+							double wordsSupport=getItemsetSupport(wordsItem);
+							double confidence=itemsetSupport/wordsSupport;
+							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+word+"] => ["+words[0]+", "+words[2]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
-								
-							}else if(word.equals(words[2])){
-								rules.add(new Rule(confidence,
-										"["+word+"] => ["+words[0]+", "+words[1]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
-							}
+										"["+words[0]+words[2]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+								}else{
+									break;
+								}
 							
-						}else if(ids.size()==2){
-							if(word.equals(words[0])){
+						}else if(word.equals(words[2])){
+							int id1=wordIds.get(words[0]);
+							int id2=wordIds.get(words[1]);
+							int[] rangeId={Itemset.posToRange(id1),Itemset.posToRange(id2)};
+							int[] wordId={ Itemset.posToBitmask(id1),Itemset.posToBitmask(id2)};
+							Itemset wordsItem=new Itemset(rangeId, wordId);
+							double wordsSupport=getItemsetSupport(wordsItem);
+							double confidence=itemsetSupport/wordsSupport;
+							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+word+"] => ["+words[1]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
-							}else if(word.equals(words[1])){
-								rules.add(new Rule(confidence,
-										"["+word+"] => ["+words[0]+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
-							}
+										"["+words[0]+words[1]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+								}else{
+									break;
+								}
 						}
-						
+					}else if(ids.size()==2){
+						if(word.equals(words[0])){
+							int id1=wordIds.get(words[1]);
+							int[] rangeId={Itemset.posToRange(id1)};
+							int[] wordId={ Itemset.posToBitmask(id1)};
+							Itemset wordsItem=new Itemset(rangeId, wordId);
+							double wordsSupport=getItemsetSupport(wordsItem);
+							double confidence=itemsetSupport/wordsSupport;
+							if(confidence>minconf){
+								rules.add(new Rule(confidence,
+										"["+words[1]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+								}else{
+									break;
+								}
+						}else if(word.equals(words[1])){
+							int id1=wordIds.get(words[0]);
+							int[] rangeId={Itemset.posToRange(id1)};
+							int[] wordId={ Itemset.posToBitmask(id1)};
+							Itemset wordsItem=new Itemset(rangeId, wordId);
+							double wordsSupport=getItemsetSupport(wordsItem);
+							double confidence=itemsetSupport/wordsSupport;
+							if(confidence>minconf){
+								rules.add(new Rule(confidence,
+										"["+words[0]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+								}else{
+									break;
+								}
+							
+						}
 					}
-					else{
-						break;
-					}
+					
+					
 				}
 				
 			}
