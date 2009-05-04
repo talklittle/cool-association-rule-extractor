@@ -53,48 +53,48 @@ public class Itemset implements Comparable<Itemset> {
 		return returnMe;
 	}
 	
-	/**
-	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
-	 * i.e., the documents where you can find all words.
-	 * Assuming that this is an Itemset of words.
-	 * @param wordDocs
-	 * @return
-	 */
-	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
-		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
-		HashSet<Integer> unionDocs = null;
-		List<Integer> myIds = this.getIds();
-		boolean firstPass = true;
-		
-		for (Integer wordId : myIds) {
-			Itemset docsContainingWord = wordDocs.get(wordId);
-			
-			// Don't want to union with everything; union with the current intersection
-			unionDocs = intersectionDocs;
-			intersectionDocs = new HashSet<Integer>();
-			
-			if (docsContainingWord == null) {
-				// This should not happen, since COMMON words should have been removed from index tables...
-				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
-				continue;
-			}
-//			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
-//					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
-			
-			if (firstPass) {
-				intersectionDocs.addAll(docsContainingWord.getIds());
-				firstPass = false;
-			} else {
-				for (Integer docId : docsContainingWord.getIds()) {
-					if (!unionDocs.add(docId))
-						intersectionDocs.add(docId); // Holds "duplicates"
-				}
-			}
-		}
-		
-//		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
-		return intersectionDocs;
-	}
+//	/**
+//	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
+//	 * i.e., the documents where you can find all words.
+//	 * Assuming that this is an Itemset of words.
+//	 * @param wordDocs
+//	 * @return
+//	 */
+//	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
+//		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
+//		HashSet<Integer> unionDocs = null;
+//		List<Integer> myIds = this.getIds();
+//		boolean firstPass = true;
+//		
+//		for (Integer wordId : myIds) {
+//			Itemset docsContainingWord = wordDocs.get(wordId);
+//			
+//			// Don't want to union with everything; union with the current intersection
+//			unionDocs = intersectionDocs;
+//			intersectionDocs = new HashSet<Integer>();
+//			
+//			if (docsContainingWord == null) {
+//				// This should not happen, since COMMON words should have been removed from index tables...
+//				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+//				continue;
+//			}
+////			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
+////					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
+//			
+//			if (firstPass) {
+//				intersectionDocs.addAll(docsContainingWord.getIds());
+//				firstPass = false;
+//			} else {
+//				for (Integer docId : docsContainingWord.getIds()) {
+//					if (!unionDocs.add(docId))
+//						intersectionDocs.add(docId); // Holds "duplicates"
+//				}
+//			}
+//		}
+//		
+////		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
+//		return intersectionDocs;
+//	}
 	
 //	/**
 //	 * Get a TreeSet of Union of document Ids where the words in this Itemset can be found.

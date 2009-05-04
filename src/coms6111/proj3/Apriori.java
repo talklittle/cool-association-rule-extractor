@@ -196,8 +196,9 @@ public class Apriori {
 					
 					
 					if (FileReader.getItemsetSupport(combined) < minsup) {
-//						System.out.println("DEBUG: aprioriGen: support < minsup for following line:");
-//						combined.debugPrintWords(idWords);
+						System.out.println("DEBUG: aprioriGen: support="+FileReader.getItemsetSupport(combined)
+								+ "< minsup="+minsup+" for following line:");
+						combined.debugPrintWords(idWords);
 						break;
 					}
 					
