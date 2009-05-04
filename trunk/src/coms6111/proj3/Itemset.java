@@ -53,48 +53,48 @@ public class Itemset implements Comparable<Itemset> {
 		return returnMe;
 	}
 	
-//	/**
-//	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
-//	 * i.e., the documents where you can find all words.
-//	 * Assuming that this is an Itemset of words.
-//	 * @param wordDocs
-//	 * @return
-//	 */
-//	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
-//		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
-//		HashSet<Integer> unionDocs = null;
-//		List<Integer> myIds = this.getIds();
-//		boolean firstPass = true;
-//		
-//		for (Integer wordId : myIds) {
-//			Itemset docsContainingWord = wordDocs.get(wordId);
-//			
-//			// Don't want to union with everything; union with the current intersection
-//			unionDocs = intersectionDocs;
-//			intersectionDocs = new HashSet<Integer>();
-//			
-//			if (docsContainingWord == null) {
-//				// This should not happen, since COMMON words should have been removed from index tables...
-//				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
-//				continue;
-//			}
-////			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
-////					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
-//			
-//			if (firstPass) {
-//				intersectionDocs.addAll(docsContainingWord.getIds());
-//				firstPass = false;
-//			} else {
-//				for (Integer docId : docsContainingWord.getIds()) {
-//					if (!unionDocs.add(docId))
-//						intersectionDocs.add(docId); // Holds "duplicates"
-//				}
-//			}
-//		}
-//		
-////		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
-//		return intersectionDocs;
-//	}
+	/**
+	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
+	 * i.e., the documents where you can find all words.
+	 * Assuming that this is an Itemset of words.
+	 * @param wordDocs
+	 * @return
+	 */
+	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
+		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
+		HashSet<Integer> unionDocs = null;
+		List<Integer> myIds = this.getIds();
+		boolean firstPass = true;
+		
+		for (Integer wordId : myIds) {
+			Itemset docsContainingWord = wordDocs.get(wordId);
+			
+			// Don't want to union with everything; union with the current intersection
+			unionDocs = intersectionDocs;
+			intersectionDocs = new HashSet<Integer>();
+			
+			if (docsContainingWord == null) {
+				// This should not happen, since COMMON words should have been removed from index tables...
+				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+				continue;
+			}
+//			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
+//					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
+			
+			if (firstPass) {
+				intersectionDocs.addAll(docsContainingWord.getIds());
+				firstPass = false;
+			} else {
+				for (Integer docId : docsContainingWord.getIds()) {
+					if (!unionDocs.add(docId))
+						intersectionDocs.add(docId); // Holds "duplicates"
+				}
+			}
+		}
+		
+//		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
+		return intersectionDocs;
+	}
 	
 //	/**
 //	 * Get a TreeSet of Union of document Ids where the words in this Itemset can be found.
@@ -393,10 +393,20 @@ public class Itemset implements Comparable<Itemset> {
 	 */
 	public int compareTo(Itemset o) {
 		int length;
-		if (words.length <= o.words.length)
-			length = words.length;
+		int myNumBits, oNumBits;
+		myNumBits = this.getNumWords();
+		oNumBits = o.getNumWords();
+		// Something with fewer bits should come first
+		if (myNumBits < oNumBits)
+			return -1;
+		if (myNumBits > oNumBits)
+			return 1;
+		
+		// Use the shortest # ranges, since you will find a difference
+		if (this.ranges.length <= o.ranges.length)
+			length = this.ranges.length;
 		else
-			length = o.words.length;
+			length = o.ranges.length;
 		for (int i = 0; i < length; i++) {
 			// ranges[] holds regular ints, not bitmasks, so lower comes first
 			if (ranges[i] < o.ranges[i])
