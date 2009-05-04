@@ -222,6 +222,7 @@ public class FileReader {
         instrAlgorithm = System.currentTimeMillis();
         
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
+        outputItemsets(largeItemset);
         
         instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
         System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
@@ -261,7 +262,6 @@ public class FileReader {
 	        generateAssociationRule(largeItemset);
 	        System.out.println();
         }
-        outputItemsets(largeItemset);
 	}
 	
 	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
