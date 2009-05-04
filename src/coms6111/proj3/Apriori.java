@@ -27,6 +27,8 @@ public class Apriori {
 	private HashMap<Integer, Itemset> wordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
+	private HashSet<Integer> smallWordIds = new HashSet<Integer>(); // single words that are not large 1-itemsets
+	
 	private static HashMap<Integer[], Long> combinationTable = new HashMap<Integer[], Long>();
 	private static HashMap<Integer, Long> factorialTable = new HashMap<Integer, Long>();
 	
@@ -148,19 +150,17 @@ public class Apriori {
 			Itemset a = null;
 			for (int i = 0; i < groupCandidates.size() - 1; i++) {
 				a = groupCandidates.get(i);
+				int aLastId = (a.ranges[a.ranges.length-1] * 32) 
+					+ Bits.getPosFromLeft(Bits.getLastBit(a.words[a.words.length-1]));
 				Set<Integer> aDocs = a.getDocIdsIntersection(wordDocs);
-
-				for (int j = i + 1; j < groupCandidates.size(); j++) {
-					Itemset b = groupCandidates.get(j);
-
-					int bLastRange = b.ranges[b.ranges.length-1];
-					int bLastBit = Bits.getLastBit(b.words[b.words.length-1]);
-					if (bLastBit == 0) {
-						System.err.println("ERROR: aprioriGenPrune: bLastBit is 0");
-					}
+				SortedSet<Integer> toCombine = getCombineIds(a.getIds(), aDocs, aLastId);
+				
+				for (Iterator<Integer> it = toCombine.iterator(); it.hasNext(); /* */) {
+					Integer combineId = it.next();
 					
 					// Combine a and b
-					Itemset combined = a.addAndCopy(bLastRange, bLastBit);
+					Itemset combined = a.addAndCopy(Itemset.posToRange(combineId),
+							Itemset.posToBitmask(combineId));
 
 //					// DEBUG
 //					List<Integer> azzz = a.getIds();
@@ -183,6 +183,7 @@ public class Apriori {
 //						System.out.println("DEBUG: aprioriGen: support="+FileReader.getItemsetSupport(combined)
 //								+ " < minsup="+minsup+" for following line:");
 //						combined.debugPrintWords(idWords);
+						System.err.println("ERROR: Trying to add itemset k="+k+" with insufficient support="+FileReader.getItemsetSupport(combined));
 						continue;
 					}
 					
@@ -212,7 +213,41 @@ public class Apriori {
 //		System.out.println("DEBUG: aprioriGenPrune: k="+k+" called "+instrAprioriPruneCount+" times"
 //				+" groupCandidates has "+groupCandidates.size()+" Itemsets"
 //				+" returning "+newCandidates.size()+" new large itemsets");
+		
 		return newCandidates;
+	}
+	
+	public SortedSet<Integer> getCombineIds(Collection<Integer> alreadyHaveIds, Collection<Integer> docs,
+			int minimumId) {
+		HashSet<Integer> ignoreIds = new HashSet<Integer>();
+		ignoreIds.addAll(smallWordIds);
+		ignoreIds.addAll(alreadyHaveIds);
+		HashMap<Integer, Integer> counts = new HashMap<Integer, Integer>(); // word counts
+		SortedSet<Integer> combineIds = new TreeSet<Integer>();
+		
+		double threshold = minsup * (double)docIds.size();
+//		Integer largestLtThreshold = 0; // Largest word count less than threshold
+		
+		for (Integer docId : docs) {
+			Collection<Integer> words = docWords.get(docId).getIds();
+			for (Integer wordId : words) {
+				if (ignoreIds.contains(wordId) || wordId < minimumId)
+					continue;
+				if (counts.containsKey(wordId)) {
+					counts.put(wordId, counts.get(wordId) + 1);
+				} else {
+					counts.put(wordId, 1);
+				}
+			}
+		}
+		for (Integer wordId : counts.keySet()) {
+			if (counts.get(wordId) >= threshold) {
+//				System.out.println("DEBUG: getCombineIds: adding; wordId="+wordId+" count="+counts.get(wordId)
+//						+" threshold="+threshold);
+				combineIds.add(wordId);
+			}
+		}
+		return combineIds;
 	}
 	
 	/**
@@ -258,6 +293,8 @@ public class Apriori {
 					System.err.println("WARN: getLarge1Itemsets: Trying to add existing Itemset(next line)");
 					largeItem.debugPrintWords(idWords);
 				}
+			} else {
+				smallWordIds.addAll(largeItem.getIds());
 			}
 		}
 		

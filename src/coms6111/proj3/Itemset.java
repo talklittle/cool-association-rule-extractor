@@ -40,6 +40,15 @@ public class Itemset implements Comparable<Itemset> {
 		words = newWords;
 	}
 	
+	public Itemset(Integer[] newRanges, Integer[] newWords) {
+		ranges = new int[newRanges.length];
+		words = new int[newWords.length];
+		for (int i = 0; i < newRanges.length; i++) {
+			ranges[i] = newRanges[i];
+			words[i] = newWords[i];
+		}
+	}
+	
 	public Itemset(Itemset other, int newLength) {
 		ranges = Arrays.copyOf(other.ranges, newLength);
 		words = Arrays.copyOf(other.words, newLength);
@@ -169,16 +178,34 @@ public class Itemset implements Comparable<Itemset> {
 		return new Itemset(newRanges, newWords);
 	}
 	
-//	public Itemset intersect(Itemset o) {
-//		TreeSet<Integer> allIds = new TreeSet<Integer>();
-//		int otherRangePos;
-//		for (int i = 0; i < this.ranges.length; i++) {
-//			otherRangePos = o.getRangePos(this.ranges[i]);
-//			if (otherRangePos != -1)
-//				allIds.addAll(c)
-//		}
-//		return new Itemset(allRanges);
-//	}
+	public Itemset intersect(Itemset o) {
+		HashMap<Integer, Integer> rangeWords = new HashMap<Integer, Integer>();
+		TreeSet<Integer> sharedRanges = new TreeSet<Integer>();
+		Integer[] intersectRanges;
+		ArrayList<Integer> intersectWords = new ArrayList<Integer>();
+		Itemset intersection;
+
+		// Add bitmasks from this
+		for (int i = 0; i < this.ranges.length; i++) {
+			rangeWords.put(this.ranges[i], this.words[i]);
+		}
+		// Intersect with bitmasks from other
+		for (int i = 0; i < o.ranges.length; i++) {
+			if (rangeWords.containsKey(o.ranges[i])) {
+				rangeWords.put(o.ranges[i], rangeWords.get(o.ranges[i]) & o.words[i]);
+				sharedRanges.add(o.ranges[i]);
+			} else {
+				// Do nothing because we are finding intersection
+			}
+		}
+		
+		intersectRanges = sharedRanges.toArray(new Integer[0]);
+		for (Integer i : intersectRanges) {
+			intersectWords.add(rangeWords.get(i));
+		}
+		intersection = new Itemset(intersectRanges, intersectWords.toArray(new Integer[0]));
+		return intersection;
+	}
 	
 	public boolean contains(Itemset o) {
 		for (int i = 0; i < o.ranges.length; i++) {
