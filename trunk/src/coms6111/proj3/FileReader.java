@@ -103,6 +103,7 @@ public class FileReader {
             		// You have never seen this word in any document
             		sortedWords.put(j, 0); // Initialize count to 0 because it will be incremented below
             		// Give newly found word a new word position
+//            		System.out.println("DEBUG: main: New word: "+j+" id="+(wordsPosIndex));
             		wordIds.put(j, wordsPosIndex++);
             		// Insert entry (word id, this doc id) to wordDocs
             		int[] docRanges = { Itemset.posToRange(docIds.get(aFile)) };
@@ -185,13 +186,13 @@ public class FileReader {
         // Run Apriori algorithm
         ///////////////////////////
         
-        ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords,wordIds);
+        ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
         generateAssociationRule(largeItemset,idWords);
         
 //        System.out.println("instrItemsetSupport: " + instrItemsetSupport+"ms "+ instrItemsetSupportCount);
 	}
 	
-	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords, HashMap<String, Integer> wordIds) {
+	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
 									  idWords,
@@ -217,12 +218,14 @@ public class FileReader {
 //				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
 				String[] words=new String[i];
-				List<Integer> ids=itset.getWordIds();
+				List<Integer> ids=itset.getIds();
 				for(int j=0;j<ids.size();j++){
 					words[j]=idWords.get(ids.get(j));
 				}
 				
 				double itemsetSupport=getItemsetSupport(itset);
+				System.out.println("DEBUG: generateAssociationRule: itset (next line) supp:"+itemsetSupport);
+				itset.debugPrintWords(idWords);
 				for (int wId : ids){
 //					System.out.println("DEBUG: generateAssociationRule: looking at next word");
 					
@@ -232,7 +235,7 @@ public class FileReader {
 					Itemset wordItem = new Itemset(rangeId, wordId);
 					double wordSupport=getItemsetSupport(wordItem);
 					double confidence=itemsetSupport/wordSupport;
-//					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
+					System.out.println("DEBUG: generateAssociationRule: word: "+word+" supp:"+wordSupport+" conf:"+confidence);
 					if(confidence>minconf){
 						if(ids.size()==3){
 							if(word.equals(words[0])){
@@ -366,18 +369,19 @@ public class FileReader {
     	
     }
     public static double getItemsetSupport(Itemset itset){
-    	double support = 0;
+    	double support = 0.0;
     	
 //    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //    	instrItemsetSupportCount++;
     	
-		for (Iterator<Itemset> wiadIt = docWords.values().iterator(); wiadIt.hasNext(); /* */) {
-			Itemset wordsInADoc = wiadIt.next();
-			if (wordsInADoc.contains(itset)) {
-				support++;
-			}
+		Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
+		if (docIdsOfThisItset == null) {
+			// XXX This should not happen since COMMON words should have been removed...
+			return 0.0;
 		}
-		support /= docWords.size(); // Ratio of containing transactions
+		
+		System.out.println("DEBUG: getItemsetSupport: itset (next line) numBits: "+itset.getNumWords()+ " docIdsOfThisItset.size()="+((double)docIdsOfThisItset.size()));
+		support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing Transactions to all Transactions
 		
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);

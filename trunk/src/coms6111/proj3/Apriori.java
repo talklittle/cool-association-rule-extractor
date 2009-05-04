@@ -67,7 +67,6 @@ public class Apriori {
 		SortedSet<Itemset> large1Itemsets = getLarge1Itemsets(sortedwords);
 		
 		ArrayList<SortedSet<Itemset>> L = new ArrayList<SortedSet<Itemset>>(); // Large itemsets
-		//ArrayList<Itemset> C = new ArrayList<Itemset>(); // Candidate Large itemsets
 		SortedSet<Itemset> Lk;
 				
 		L.add(new TreeSet<Itemset>()); // The 0-itemsets; an empty set

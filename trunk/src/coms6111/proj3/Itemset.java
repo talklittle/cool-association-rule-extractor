@@ -52,10 +52,71 @@ public class Itemset implements Comparable<Itemset> {
 		return returnMe;
 	}
 	
-	public String[] getDocs(HashMap<Integer, String> docsRev) {
-		// FIXME
-		return null;
-	}
+//	/**
+//	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
+//	 * i.e., the documents where you can find all words.
+//	 * Assuming that this is an Itemset of words.
+//	 * @param wordDocs
+//	 * @return
+//	 */
+//	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
+//		HashSet<Integer> returnMe = null;
+//		List<Integer> myIds = this.getIds();
+//		
+//		for (Integer wordId : myIds) {
+//			Itemset docsContainingWord = wordDocs.get(wordId);
+//			if (docsContainingWord == null) {
+//				// This should not happen, since COMMON words should have been removed from index tables...
+////				System.err.println("ERROR: getDocIds: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+//				continue;
+//			}
+//			
+//			// Need to create a Set because retainAll doesn't work correctly with List
+//			HashSet<Integer> dcwIds = new HashSet<Integer>();
+//			dcwIds.addAll(docsContainingWord.getIds());
+//			if (returnMe == null) {
+//				returnMe = new HashSet<Integer>();
+//				returnMe.addAll(dcwIds);
+//			} else {
+//				// XXX retainAll doesn't work the way we expect...
+////				returnMe.retainAll(dcwIds); // Set Intersection
+//				
+//				HashSet<Integer> newReturnMe = new HashSet<Integer>();
+//				for (Integer dcwId : dcwIds) {
+//					if (returnMe.contains(dcwId))
+//						newReturnMe.add(dcwId);
+//				}
+//				returnMe = newReturnMe;
+//			}
+//		}
+//		// DEBUG
+//		int returnMeSize = -1;
+//		if (returnMe != null)
+//			returnMeSize = returnMe.size();
+//		System.out.println("DEBUG: getDocIdsIntersection: myIds.size()="+myIds.size()+ " returnMe.size()="+returnMeSize);
+//
+//		return returnMe;
+//	}
+//	
+//	/**
+//	 * Get a TreeSet of Union of document Ids where the words in this Itemset can be found.
+//	 * Assuming that this is an Itemset of words.
+//	 * @param wordDocs
+//	 * @return
+//	 */
+//	public TreeSet<Integer> getDocIdsUnion(HashMap<Integer, Itemset> wordDocs) {
+//		TreeSet<Integer> returnMe = new TreeSet<Integer>();
+//		List<Integer> myIds = this.getIds();
+//		for (Integer wordId : myIds) {
+//			Itemset docsContainingWord = wordDocs.get(wordId);
+//			if (docsContainingWord == null) {
+//				System.err.println("ERROR: getDocIds: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+//				continue;
+//			}
+//			returnMe.addAll(docsContainingWord.getIds());
+//		}
+//		return returnMe;
+//	}
 	
 	public Itemset chopLastBit() {
 		Itemset returnMe;
@@ -110,6 +171,17 @@ public class Itemset implements Comparable<Itemset> {
 		return new Itemset(newRanges, newWords);
 	}
 	
+//	public Itemset intersect(Itemset o) {
+//		TreeSet<Integer> allIds = new TreeSet<Integer>();
+//		int otherRangePos;
+//		for (int i = 0; i < this.ranges.length; i++) {
+//			otherRangePos = o.getRangePos(this.ranges[i]);
+//			if (otherRangePos != -1)
+//				allIds.addAll(c)
+//		}
+//		return new Itemset(allRanges);
+//	}
+	
 	public boolean contains(Itemset o) {
 		for (int i = 0; i < o.ranges.length; i++) {
 			if (!this.containsWords(o.ranges[i], o.words[i]))
@@ -151,7 +223,7 @@ public class Itemset implements Comparable<Itemset> {
 			return false;
 		}
 		// Unset the bits
-		words[rangePos] &= ~bitmask;
+		this.words[rangePos] &= ~bitmask;
 		if (words[rangePos] == 0) {
 			// Remove this range
 			newRanges = Arrays.copyOf(ranges, ranges.length - 1);
@@ -160,8 +232,8 @@ public class Itemset implements Comparable<Itemset> {
 				newRanges[i] = ranges[i+1];
 				newWords[i] = words[i+1];
 			}
-			ranges = newRanges;
-			words = newWords;
+			this.ranges = newRanges;
+			this.words = newWords;
 		}
 		return true;
 	}
@@ -199,7 +271,7 @@ public class Itemset implements Comparable<Itemset> {
 		}
 	}
 	
-	public List<Integer> getWordIds() {
+	public List<Integer> getIds() {
 		ArrayList<Integer> allWordIds = new ArrayList<Integer>();
 		for (int i = 0; i < ranges.length; i++) {
 			allWordIds.addAll(rangeToWordIds(ranges[i]));
@@ -347,7 +419,7 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	public void debugPrintWords(Map<Integer, String> idWords) {
-		List<Integer> wordIds = this.getWordIds();
+		List<Integer> wordIds = this.getIds();
 		System.out.print("DEBUG: Itemset (len "+wordIds.size()+"): ");
 		for (Integer wordId : wordIds) {
 			System.out.print(idWords.get(wordId) + " ("+wordId+"), ");
