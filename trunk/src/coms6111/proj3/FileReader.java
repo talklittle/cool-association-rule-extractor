@@ -214,6 +214,7 @@ public class FileReader {
 	        }
         } while (minsup < 0);
         
+        System.out.println("Using minsup of " + String.format("%.4f", minsup*100) + "%");
         
         ///////////////////////////
         // Run Apriori algorithm
@@ -259,6 +260,7 @@ public class FileReader {
 		        }
 	        } while (minconf < 0);
 	        
+	        System.out.println("Using minconf of " + String.format("%.4f", minconf*100) + "%");
 	        generateAssociationRule(largeItemset);
 	        System.out.println();
         }
@@ -334,7 +336,7 @@ public class FileReader {
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
 							String supStr = String.format("%.4f", itemsetSupport * 100);
-							if(confidence>minconf){
+							if(confidence>=minconf){
 								rules.add(new Rule(confidence,
 										"["+words[1]+", "+words[2]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
@@ -353,7 +355,7 @@ public class FileReader {
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
 							String supStr = String.format("%.4f", itemsetSupport * 100);
-							if(confidence>minconf){
+							if(confidence>=minconf){
 								rules.add(new Rule(confidence,
 										"["+words[0]+", "+words[2]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
@@ -373,7 +375,7 @@ public class FileReader {
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
 							String supStr = String.format("%.4f", itemsetSupport * 100);
-							if(confidence>minconf){
+							if(confidence>=minconf){
 								rules.add(new Rule(confidence,
 										"["+words[0]+", "+words[1]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
@@ -390,7 +392,7 @@ public class FileReader {
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
 							String supStr = String.format("%.4f", itemsetSupport * 100);
-							if(confidence>minconf){
+							if(confidence>=minconf){
 								rules.add(new Rule(confidence,
 										"["+words[1]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
@@ -405,7 +407,7 @@ public class FileReader {
 							double confidence=itemsetSupport/wordsSupport;
 							String confStr = String.format("%.4f", confidence * 100);
 							String supStr = String.format("%.4f", itemsetSupport * 100);
-							if(confidence>minconf){
+							if(confidence>=minconf){
 								rules.add(new Rule(confidence,
 										"["+words[0]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
