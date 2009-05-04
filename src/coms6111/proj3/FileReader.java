@@ -104,10 +104,10 @@ public class FileReader {
             		Itemset putMe = wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask);
             		wordDocs.put(wordIds.get(j), putMe);
 //            		// DEBUG
-            		if (j.equals("dolphins")) {
-            			System.out.println("DEBUG: add dolphins count="+wordDocs.get(wordIds.get(j)).getNumWords()
-    					+ " docId="+docIds.get(aFile));			
-            		}
+//            		if (j.equals("dolphins")) {
+//            			System.out.println("DEBUG: add dolphins count="+wordDocs.get(wordIds.get(j)).getNumWords()
+//    					+ " docId="+docIds.get(aFile));			
+//            		}
 //            		if (j.equals("protestant")) {
 //            			System.out.println("DEBUG: add protestant count="+wordDocs.get(wordIds.get(j)).getNumWords()
 //            					+ " docId="+docIds.get(aFile));
@@ -224,9 +224,10 @@ public class FileReader {
         // Run Apriori algorithm
         ///////////////////////////
         
+        System.out.println("Finding large itemsets...");
         instrAlgorithm = System.currentTimeMillis();
         
-        ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
+        ArrayList<List<Itemset>> largeItemset=runApriori(sortedWords);
         outputItemsets(largeItemset);
         
         instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
@@ -270,7 +271,7 @@ public class FileReader {
         }
 	}
 	
-	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
+	public static ArrayList<List<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
 		Apriori apriori = new Apriori(docIds,
 									  wordIds,
 									  idWords,
@@ -278,20 +279,20 @@ public class FileReader {
 									  docWords,
 									  minsup,
 									  minconf);
-		ArrayList<SortedSet<Itemset>> largeItemsets = apriori.doApriori(sortedwords);
+		ArrayList<List<Itemset>> largeItemsets = apriori.doApriori(sortedwords);
 		return largeItemsets;
 	}
 
-	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset){
+	public static void generateAssociationRule(List<List<Itemset>> largeItemset){
 		ArrayList<Rule> rules = new ArrayList<Rule>(); 
 		
 		for(int i=2;i<=3;i++){
-			System.out.println("DEBUG: generateAssociationRule: i=" + i);
+//			System.out.println("DEBUG: generateAssociationRule: i=" + i);
 			if (largeItemset.size() <= i) {
-				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
+//				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
 				break;
 			}
-			SortedSet<Itemset> aLargeItemsetSet = largeItemset.get(i);
+			List<Itemset> aLargeItemsetSet = largeItemset.get(i);
 		    
 			for(Iterator<Itemset> it=aLargeItemsetSet.iterator(); it.hasNext(); /* */){
 				Integer specificId = wordIds.get(specificWord);
@@ -526,12 +527,17 @@ public class FileReader {
     	return documentsPosition;
     }
     
-    public static void outputItemsets(ArrayList<SortedSet<Itemset>> itemsets) {
+    public static void outputItemsets(List<List<Itemset>> itemsets) {
     	Itemset[] allLargeItemsets;
     	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
-    	for (SortedSet<Itemset> ss : itemsets) {
+    	long debugCounter = 0;
+    	
+    	for (List<Itemset> ss : itemsets) {
+    		debugCounter += ss.size();
     		tmpLargeItemsets.addAll(ss);
     	}
+//    	System.out.println("DEBUG: outputItemsets: itemsets.size()="+itemsets.size()
+//    			+" total ss should be "+debugCounter+" tmpLargeItemsets.size()="+tmpLargeItemsets.size());
     	allLargeItemsets = tmpLargeItemsets.toArray(new Itemset[0]);
     	Arrays.sort(allLargeItemsets, new ItemsetSupportComparator());
     	File LARGE = new File("LARGE");
@@ -577,24 +583,12 @@ public class FileReader {
 //		System.out.println("DEBUG: itemsetSupport does not contain key (next line)");
 //		itset.debugPrintWords(idWords);
 		
+    	Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
+    	
     	if (itset.getNumWords() == 0) {
     		support = 0.0;
     	} else {
-	    	int firstRange = itset.ranges[0];
-	    	int firstWord = Bits.getFirstBit(itset.words[0]);
-	    	int firstId = (32*firstRange) + Bits.getPosFromLeft(firstWord);
-	    	
-	    	// Get docs containing first word
-	    	Itemset docsContainingFirst = wordDocs.get(firstId);
-	    	List<Integer> docsContainingFirstIds = docsContainingFirst.getIds();
-	    	
-	    	// See if these docs contain all words
-	    	for (Integer id : docsContainingFirstIds) {
-	    		if (docWords.get(id).contains(itset))
-	    			support += 1.0;
-	    	}
-	    	
-	    	support /= ((double)docIds.size()); // Ratio of containing transactions
+	    	support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing transactions
     	}
 		itemsetSupport.put(itset, support);
 		
