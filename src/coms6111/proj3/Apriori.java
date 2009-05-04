@@ -20,6 +20,7 @@ public class Apriori {
 	
 	private double minsup, minconf;
 	private int maxWordsPerItemset = 0;
+	private int maxWordId;
 	
 	private HashMap<String, Integer> docIds;
 	private HashMap<String, Integer> wordIds;
@@ -40,6 +41,7 @@ public class Apriori {
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
+			       int newMaxWordId,
 			       double newMinsup,
 			       double newMinconf) {
 		docIds = newDocIds;
@@ -47,6 +49,7 @@ public class Apriori {
 		idWords = newIdWords;
 		wordDocs = newWordDocs;
 		docWords = newDocWords;
+		maxWordId = newMaxWordId;
 		minsup = newMinsup;
 		minconf = newMinconf;
 	}
@@ -56,10 +59,12 @@ public class Apriori {
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
+			       int newMaxWordId,
 			       double newMinsup,
 			       double newMinconf,
 			       int newMaxWordsPerItemset) {
-		this(newDocumentsPosition, newWordsPosition, newIdWords, newWordDocs, newDocWords, newMinsup, newMinconf);
+		this(newDocumentsPosition, newWordsPosition, newIdWords, newWordDocs, newDocWords,
+				newMaxWordId, newMinsup, newMinconf);
 		maxWordsPerItemset = newMaxWordsPerItemset;
 	}
 
@@ -152,8 +157,7 @@ public class Apriori {
 				a = groupCandidates.get(i);
 				int aLastId = (a.ranges[a.ranges.length-1] * 32) 
 					+ Bits.getPosFromLeft(Bits.getLastBit(a.words[a.words.length-1]));
-				Set<Integer> aDocs = a.getDocIdsIntersection(wordDocs);
-				SortedSet<Integer> toCombine = getCombineIds(a.getIds(), aDocs, aLastId);
+				SortedSet<Integer> toCombine = getCombineIds(a, aLastId+1);
 				
 				for (Iterator<Integer> it = toCombine.iterator(); it.hasNext(); /* */) {
 					Integer combineId = it.next();
@@ -161,23 +165,11 @@ public class Apriori {
 					// Combine a and b
 					Itemset combined = a.addAndCopy(Itemset.posToRange(combineId),
 							Itemset.posToBitmask(combineId));
-
-//					// DEBUG
-//					List<Integer> azzz = a.getIds();
-//					List<Integer> bzzz = b.getIds();
-//					System.out.println("DEBUG: a numwords "+a.getNumWords()+" lastRange "+a.ranges[a.ranges.length-1]
-//					                 + " contains b:" + a.containsWordIds(bzzz));
-//					a.debugPrintWords(idWords);
-//					System.out.println("DEBUG: b numwords "+b.getNumWords()+" lastRange "+b.ranges[b.ranges.length-1]
-//					                 + " contains a:" + b.containsWordIds(azzz));
-//					b.debugPrintWords(idWords);
-//					System.out.println("DEBUG: c numwords "+combined.getNumWords()
-//							         + " contains a:" + combined.containsWordIds(azzz)
-//							         + " contains b:" + combined.containsWordIds(bzzz));
-//					combined.debugPrintWords(idWords);
-//					System.out.println("DEBUG: c " + combined.ranges[0] + " " + combined.ranges[1]);
-//					System.out.println("DEBUG: c " + combined.words[0] + " " + combined.words[1]);
 					
+//					System.out.println("DEBUG: aprioriGenPrune combineId="+combineId
+//							+" a, combined (next 2 lines)");
+//					a.debugPrintWords(idWords);
+//					combined.debugPrintWords(idWords);
 					
 					if (FileReader.getItemsetSupport(combined) < minsup) {
 //						System.out.println("DEBUG: aprioriGen: support="+FileReader.getItemsetSupport(combined)
@@ -217,33 +209,21 @@ public class Apriori {
 		return newCandidates;
 	}
 	
-	public SortedSet<Integer> getCombineIds(Collection<Integer> alreadyHaveIds, Collection<Integer> docs,
-			int minimumId) {
-		HashSet<Integer> ignoreIds = new HashSet<Integer>();
-		ignoreIds.addAll(smallWordIds);
-		ignoreIds.addAll(alreadyHaveIds);
-		HashMap<Integer, Integer> counts = new HashMap<Integer, Integer>(); // word counts
+	public SortedSet<Integer> getCombineIds(Itemset initial, int minimumId) {
 		SortedSet<Integer> combineIds = new TreeSet<Integer>();
 		
 		double threshold = minsup * (double)docIds.size();
 //		Integer largestLtThreshold = 0; // Largest word count less than threshold
 		
-		for (Integer docId : docs) {
-			Collection<Integer> words = docWords.get(docId).getIds();
-			for (Integer wordId : words) {
-				if (ignoreIds.contains(wordId) || wordId < minimumId)
-					continue;
-				if (counts.containsKey(wordId)) {
-					counts.put(wordId, counts.get(wordId) + 1);
-				} else {
-					counts.put(wordId, 1);
-				}
+		Itemset docsWithInitial = initial.getDocIdsIntersection(wordDocs);
+		for (Integer wordId = minimumId; wordId <= maxWordId; wordId++) {
+			if (smallWordIds.contains(wordId) || !wordDocs.containsKey(wordId)) {
+				// Ignore word Ids below a minimum Id (preserve ordering)
+				// and ignore COMMON words
+				continue;
 			}
-		}
-		for (Integer wordId : counts.keySet()) {
-			if (counts.get(wordId) >= threshold) {
-//				System.out.println("DEBUG: getCombineIds: adding; wordId="+wordId+" count="+counts.get(wordId)
-//						+" threshold="+threshold);
+			Itemset intersectionOfDocs = docsWithInitial.intersect(wordDocs.get(wordId));
+			if (intersectionOfDocs.getNumBits() >= threshold) {
 				combineIds.add(wordId);
 			}
 		}

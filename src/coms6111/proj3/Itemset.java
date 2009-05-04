@@ -54,7 +54,7 @@ public class Itemset implements Comparable<Itemset> {
 		words = Arrays.copyOf(other.words, newLength);
 	}
 	
-	public int getNumWords() {
+	public int getNumBits() {
 		int returnMe = 0;
 		for (int i = 0; i < ranges.length; i++) {
 			returnMe += Bits.getNumBits(words[i]);
@@ -63,46 +63,33 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	/**
-	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
+	 * Get an Itemset of Intersection of document Ids where the words in this Itemset can be found.
 	 * i.e., the documents where you can find all words.
 	 * Assuming that this is an Itemset of words.
 	 * @param wordDocs
 	 * @return
 	 */
-	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
-		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
-		HashSet<Integer> unionDocs = null;
+	public Itemset getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
 		List<Integer> myIds = this.getIds();
 		boolean firstPass = true;
+		Itemset intersection = null;
 		
 		for (Integer wordId : myIds) {
 			Itemset docsContainingWord = wordDocs.get(wordId);
 			
-			// Don't want to union with everything; union with the current intersection
-			unionDocs = intersectionDocs;
-			intersectionDocs = new HashSet<Integer>();
-			
-			if (docsContainingWord == null) {
-				// This should not happen, since COMMON words should have been removed from index tables...
-				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
-				continue;
-			}
 //			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
 //					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
 			
 			if (firstPass) {
-				intersectionDocs.addAll(docsContainingWord.getIds());
+				intersection = docsContainingWord;
 				firstPass = false;
 			} else {
-				for (Integer docId : docsContainingWord.getIds()) {
-					if (!unionDocs.add(docId))
-						intersectionDocs.add(docId); // Holds "duplicates"
-				}
+				intersection = intersection.intersect(docsContainingWord);
 			}
 		}
 		
 //		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
-		return intersectionDocs;
+		return intersection;
 	}
 	
 //	/**
@@ -184,16 +171,77 @@ public class Itemset implements Comparable<Itemset> {
 		Integer[] intersectRanges;
 		ArrayList<Integer> intersectWords = new ArrayList<Integer>();
 		Itemset intersection;
+		int minRangeId, maxRangeId;
+		int myMinRangePos, myMaxRangePos, oMinRangePos, oMaxRangePos;
 
+		// Get min and max range that you need to look through
+		if (this.ranges[0] < o.ranges[0])
+			minRangeId = o.ranges[0];
+		else
+			minRangeId = this.ranges[0];
+		if (this.ranges[this.ranges.length-1] < o.ranges[o.ranges.length-1])
+			maxRangeId = this.ranges[this.ranges.length-1];
+		else
+			maxRangeId = o.ranges[o.ranges.length-1];
+		
+		myMinRangePos = this.getRangeInsertionPos(minRangeId);
+		myMaxRangePos = this.getRangeInsertionPos(maxRangeId);
+		oMinRangePos = o.getRangeInsertionPos(minRangeId);
+		oMaxRangePos = o.getRangeInsertionPos(maxRangeId);
+		
 		// Add bitmasks from this
-		for (int i = 0; i < this.ranges.length; i++) {
+		for (int i = myMinRangePos; i <= myMaxRangePos && i < this.ranges.length; i++) {
+			rangeWords.put(this.ranges[i], this.words[i]);
+		}
+
+		// Intersect with bitmasks from other
+		for (int i = oMinRangePos; i <= oMaxRangePos && i < o.ranges.length; i++) {
+			if (rangeWords.containsKey(o.ranges[i])) {
+				int bitmask = rangeWords.get(o.ranges[i]) & o.words[i];
+				if (bitmask != 0) {
+					rangeWords.put(o.ranges[i], bitmask);
+					sharedRanges.add(o.ranges[i]);
+				} else {
+					rangeWords.remove(o.ranges[i]);
+					sharedRanges.remove(o.ranges[i]);
+				}
+			} else {
+				// Do nothing because we are finding intersection
+			}
+		}
+		
+		intersectRanges = sharedRanges.toArray(new Integer[0]);
+		for (Integer i : intersectRanges) {
+			intersectWords.add(rangeWords.get(i));
+		}
+		intersection = new Itemset(intersectRanges, intersectWords.toArray(new Integer[0]));
+		return intersection;
+	}
+	
+	public Itemset intersectAtLeast(int minRangeId, Itemset o) {
+		HashMap<Integer, Integer> rangeWords = new HashMap<Integer, Integer>();
+		TreeSet<Integer> sharedRanges = new TreeSet<Integer>();
+		Integer[] intersectRanges;
+		ArrayList<Integer> intersectWords = new ArrayList<Integer>();
+		Itemset intersection;
+		
+		// Add bitmasks from this
+		int myStart = this.getRangeInsertionPos(minRangeId);
+		for (int i = myStart; i < this.ranges.length; i++) {
 			rangeWords.put(this.ranges[i], this.words[i]);
 		}
 		// Intersect with bitmasks from other
-		for (int i = 0; i < o.ranges.length; i++) {
+		int oStart = o.getRangeInsertionPos(minRangeId);
+		for (int i = oStart; i < o.ranges.length; i++) {
 			if (rangeWords.containsKey(o.ranges[i])) {
-				rangeWords.put(o.ranges[i], rangeWords.get(o.ranges[i]) & o.words[i]);
-				sharedRanges.add(o.ranges[i]);
+				int bitmask = rangeWords.get(o.ranges[i]) & o.words[i];
+				if (bitmask != 0) {
+					rangeWords.put(o.ranges[i], bitmask);
+					sharedRanges.add(o.ranges[i]);
+				} else {
+					rangeWords.remove(o.ranges[i]);
+					sharedRanges.remove(o.ranges[i]);
+				}
 			} else {
 				// Do nothing because we are finding intersection
 			}
@@ -421,8 +469,8 @@ public class Itemset implements Comparable<Itemset> {
 	public int compareTo(Itemset o) {
 		int length;
 		int myNumBits, oNumBits;
-		myNumBits = this.getNumWords();
-		oNumBits = o.getNumWords();
+		myNumBits = this.getNumBits();
+		oNumBits = o.getNumBits();
 		// Something with fewer bits should come first
 		if (myNumBits < oNumBits)
 			return -1;

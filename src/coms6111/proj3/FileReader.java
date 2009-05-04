@@ -36,6 +36,7 @@ public class FileReader {
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
+	static int maxWordId;
 	static String specificWord;
 	// INSTRUMENTATION
 	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
@@ -70,6 +71,7 @@ public class FileReader {
 			//System.exit(1);
 		//}
 		
+		System.out.println("Creating index...");
 		instrIndex = System.currentTimeMillis();
 		
 		// Initialize the Bits tables
@@ -135,6 +137,7 @@ public class FileReader {
 				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
 			}
 		}
+		maxWordId = wordsPosIndex - 1;
 		instrIndex = System.currentTimeMillis() - instrIndex;
 		System.out.println("Created index in memory. ("+instrIndex+" ms)");
 		
@@ -206,69 +209,75 @@ public class FileReader {
         System.out.println("Created WORDS file. ("+instrWords+" ms)");
         System.out.println();
         
-        do {
-	        System.out.println("Please enter the value of minsup:");
-	        System.out.flush();
-	        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); 
-	        try{
-	        	minsup=Double.parseDouble(br.readLine());
-	        }catch (Exception e) {
-	        	System.out.println("Error!");
-	        	minsup = -1;
-	        }
-        } while (minsup < 0);
-        
-        System.out.println("Using minsup of " + String.format("%.4f", minsup*100) + "%");
-        
-        ///////////////////////////
-        // Run Apriori algorithm
-        ///////////////////////////
-        
-        System.out.println("Finding large itemsets...");
-        instrAlgorithm = System.currentTimeMillis();
-        
-        ArrayList<List<Itemset>> largeItemset=runApriori(sortedWords);
-        outputItemsets(largeItemset);
-        
-        instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
-        System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
-        
-        ////////////////////////////////
-        // Generate association rules
-        ////////////////////////////////
-        
         for (;;) {
 	        do {
-		        System.out.println("Please enter the specific word, or a period (.) to quit:");
+		        System.out.println("Please enter the value of minsup:");
 		        System.out.flush();
-		        BufferedReader br2 = new BufferedReader(new InputStreamReader(System.in)); 
+		        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); 
 		        try{
-		        	specificWord=br2.readLine().toLowerCase();
+		        	minsup=Double.parseDouble(br.readLine());
 		        }catch (Exception e) {
 		        	System.out.println("Error!");
-		        	specificWord = null;
+		        	minsup = -1;
 		        }
-	        } while (specificWord == null || "".equals(specificWord));
+	        } while (minsup < 0);
 	        
+	        System.out.println("Using minsup of " + String.format("%.4f", minsup*100) + "%");
+	        
+	        ///////////////////////////
+	        // Run Apriori algorithm
+	        ///////////////////////////
+	        
+	        System.out.println("Finding large itemsets...");
+	        instrAlgorithm = System.currentTimeMillis();
+	        
+	        ArrayList<List<Itemset>> largeItemset=runApriori(sortedWords);
+	        outputItemsets(largeItemset);
+	        
+	        instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
+	        System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
+	        
+	        ////////////////////////////////
+	        // Generate association rules
+	        ////////////////////////////////
+	        
+	        for (;;) {
+		        do {
+			        System.out.println("Please enter a word, or a period (.) to quit, or slash (/) to do new minsup:");
+			        System.out.flush();
+			        BufferedReader br2 = new BufferedReader(new InputStreamReader(System.in)); 
+			        try{
+			        	specificWord=br2.readLine().toLowerCase();
+			        }catch (Exception e) {
+			        	System.out.println("Error!");
+			        	specificWord = null;
+			        }
+		        } while (specificWord == null || "".equals(specificWord));
+		        
+		        if (".".equals(specificWord))
+		        	break;
+		        if ("/".equals(specificWord))
+		        	break;
+		        
+		        do {
+			        System.out.println("Please enter the value of minconf:");
+			        System.out.flush();
+			        BufferedReader br1 = new BufferedReader(new InputStreamReader(System.in)); 
+			        try{
+			        	minconf=Double.parseDouble(br1.readLine());
+			        }catch (Exception e) {
+			        	System.out.println("Error!");
+			        	minconf = -1;
+			        }
+		        } while (minconf < 0);
+		        
+		        System.out.println("Using minconf of " + String.format("%.4f", minconf*100) + "%");
+		        generateAssociationRule(largeItemset);
+		        System.out.println();
+	        }
 	        if (".".equals(specificWord))
 	        	break;
-	        
-	        do {
-		        System.out.println("Please enter the value of minconf:");
-		        System.out.flush();
-		        BufferedReader br1 = new BufferedReader(new InputStreamReader(System.in)); 
-		        try{
-		        	minconf=Double.parseDouble(br1.readLine());
-		        }catch (Exception e) {
-		        	System.out.println("Error!");
-		        	minconf = -1;
-		        }
-	        } while (minconf < 0);
-	        
-	        System.out.println("Using minconf of " + String.format("%.4f", minconf*100) + "%");
-	        generateAssociationRule(largeItemset);
-	        System.out.println();
-        }
+		}
 	}
 	
 	public static ArrayList<List<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
@@ -277,6 +286,7 @@ public class FileReader {
 									  idWords,
 									  wordDocs,
 									  docWords,
+									  maxWordId,
 									  minsup,
 									  minconf);
 		ArrayList<List<Itemset>> largeItemsets = apriori.doApriori(sortedwords);
@@ -530,10 +540,10 @@ public class FileReader {
     public static void outputItemsets(List<List<Itemset>> itemsets) {
     	Itemset[] allLargeItemsets;
     	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
-    	long debugCounter = 0;
+//    	long debugCounter = 0;
     	
     	for (List<Itemset> ss : itemsets) {
-    		debugCounter += ss.size();
+//    		debugCounter += ss.size();
     		tmpLargeItemsets.addAll(ss);
     	}
 //    	System.out.println("DEBUG: outputItemsets: itemsets.size()="+itemsets.size()
@@ -583,12 +593,12 @@ public class FileReader {
 //		System.out.println("DEBUG: itemsetSupport does not contain key (next line)");
 //		itset.debugPrintWords(idWords);
 		
-    	Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
+    	Itemset docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
     	
-    	if (itset.getNumWords() == 0) {
+    	if (itset.getNumBits() == 0) {
     		support = 0.0;
     	} else {
-	    	support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing transactions
+	    	support = ((double)docIdsOfThisItset.getNumBits()) / ((double)docIds.size()); // Ratio of containing transactions
     	}
 		itemsetSupport.put(itset, support);
 		
