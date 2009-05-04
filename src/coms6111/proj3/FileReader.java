@@ -39,6 +39,7 @@ public class FileReader {
 	// INSTRUMENTATION
 	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
 	static long instrItemsetSupport = 0, instrItemsetSupportCount = 0;
+	static long instrAlgorithm = 0;
 	
 	public static void usage() {
 		System.out.println("Usage:");
@@ -204,10 +205,14 @@ public class FileReader {
         // Run Apriori algorithm
         ///////////////////////////
         
+        instrAlgorithm = System.currentTimeMillis();
+        
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
         generateAssociationRule(largeItemset,idWords);
+        System.out.println();
         
-//        System.out.println("instrItemsetSupport: " + instrItemsetSupport+"ms "+ instrItemsetSupportCount);
+        instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
+        System.out.println("Finished. ("+instrAlgorithm+" ms)");
 	}
 	
 	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
