@@ -98,7 +98,8 @@ public class FileReader {
             		// wordDocs should also contain the key. update wordDocs
             		int docRange = Itemset.posToRange(docIds.get(aFile));
             		int docBitmask = Itemset.posToBitmask(docIds.get(aFile));
-            		wordDocs.put(wordIds.get(j), wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask));
+            		Itemset putMe = wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask);
+            		wordDocs.put(wordIds.get(j), putMe);
             	}else{
             		// You have never seen this word in any document
             		sortedWords.put(j, 0); // Initialize count to 0 because it will be incremented below
@@ -374,14 +375,36 @@ public class FileReader {
 //    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //    	instrItemsetSupportCount++;
     	
-		Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
-		if (docIdsOfThisItset == null) {
+    	List<Integer> myWordIds = itset.getIds();
+    	if (wordIds.size() == 0) {
 			// XXX This should not happen since COMMON words should have been removed...
 			return 0.0;
 		}
+    	
+    	// Get the set of documents containing the first word
+    	Itemset docsContainingFirstWord;
+    	int i = 0;
+    	do {
+    		docsContainingFirstWord = wordDocs.get(myWordIds.get(i++));
+    	} while (docsContainingFirstWord == null && i < myWordIds.size());
+    	if (docsContainingFirstWord == null) {
+			// XXX This should not happen since COMMON words should have been removed...
+    		return 0.0;
+    	}
+    	
+    	// Use the documents containing first word, and see if they contain all words.
+    	List<Integer> docsContainingFirstWordIds = docsContainingFirstWord.getIds();
+    	for (Integer doc : docsContainingFirstWordIds) {
+    		try {
+	    		if (docWords.get(doc).contains(itset))
+	    			support += 1.0;
+    		} catch (NullPointerException e) {
+    			System.err.println("ERROR: getItemSupport: doc="+doc);
+    		}
+    	}
 		
-		System.out.println("DEBUG: getItemsetSupport: itset (next line) numBits: "+itset.getNumWords()+ " docIdsOfThisItset.size()="+((double)docIdsOfThisItset.size()));
-		support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing Transactions to all Transactions
+//		System.out.println("DEBUG: getItemsetSupport: itset (next line) numBits: "+itset.getNumWords()+ " # transactions="+support);
+		support /= ((double)docIds.size()); // Ratio of containing Transactions to all Transactions
 		
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);

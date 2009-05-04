@@ -52,52 +52,39 @@ public class Itemset implements Comparable<Itemset> {
 		return returnMe;
 	}
 	
-//	/**
-//	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
-//	 * i.e., the documents where you can find all words.
-//	 * Assuming that this is an Itemset of words.
-//	 * @param wordDocs
-//	 * @return
-//	 */
-//	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
-//		HashSet<Integer> returnMe = null;
-//		List<Integer> myIds = this.getIds();
-//		
-//		for (Integer wordId : myIds) {
-//			Itemset docsContainingWord = wordDocs.get(wordId);
-//			if (docsContainingWord == null) {
-//				// This should not happen, since COMMON words should have been removed from index tables...
-////				System.err.println("ERROR: getDocIds: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
-//				continue;
-//			}
-//			
-//			// Need to create a Set because retainAll doesn't work correctly with List
-//			HashSet<Integer> dcwIds = new HashSet<Integer>();
-//			dcwIds.addAll(docsContainingWord.getIds());
-//			if (returnMe == null) {
-//				returnMe = new HashSet<Integer>();
-//				returnMe.addAll(dcwIds);
-//			} else {
-//				// XXX retainAll doesn't work the way we expect...
-////				returnMe.retainAll(dcwIds); // Set Intersection
-//				
-//				HashSet<Integer> newReturnMe = new HashSet<Integer>();
-//				for (Integer dcwId : dcwIds) {
-//					if (returnMe.contains(dcwId))
-//						newReturnMe.add(dcwId);
-//				}
-//				returnMe = newReturnMe;
-//			}
-//		}
-//		// DEBUG
-//		int returnMeSize = -1;
-//		if (returnMe != null)
-//			returnMeSize = returnMe.size();
-//		System.out.println("DEBUG: getDocIdsIntersection: myIds.size()="+myIds.size()+ " returnMe.size()="+returnMeSize);
-//
-//		return returnMe;
-//	}
-//	
+	/**
+	 * Get a TreeSet of Intersection of document Ids where the words in this Itemset can be found.
+	 * i.e., the documents where you can find all words.
+	 * Assuming that this is an Itemset of words.
+	 * @param wordDocs
+	 * @return
+	 */
+	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
+		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
+		HashSet<Integer> unionDocs = new HashSet<Integer>();
+		List<Integer> myIds = this.getIds();
+		
+		for (Integer wordId : myIds) {
+			Itemset docsContainingWord = wordDocs.get(wordId);
+			if (docsContainingWord == null) {
+				// This should not happen, since COMMON words should have been removed from index tables...
+//				System.err.println("ERROR: getDocIds: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+				continue;
+			}
+			
+			// Need to create a Set because retainAll doesn't work correctly with List
+			for (Integer docId : docsContainingWord.getIds()) {
+				if (!unionDocs.add(docId))
+					intersectionDocs.add(docId); // Holds "duplicates"
+			}
+		}
+		
+		if (this.getNumWords() == 1)
+			return unionDocs;
+		else
+			return intersectionDocs;
+	}
+	
 //	/**
 //	 * Get a TreeSet of Union of document Ids where the words in this Itemset can be found.
 //	 * Assuming that this is an Itemset of words.
