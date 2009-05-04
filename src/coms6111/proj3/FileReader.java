@@ -23,9 +23,6 @@ import java.util.StringTokenizer;
 import java.util.TreeMap; 
 import java.util.TreeSet;
 
-import com.sun.java_cup.internal.runtime.Scanner;
-
-
 
 public class FileReader {
 	// Mapping from a filename to its id
@@ -50,7 +47,7 @@ public class FileReader {
 	
 	public static void main(String[] args) throws IOException{
 		String url=null;
-		if (args.length < 3) {
+		if (args.length < 1) {
 			usage();
 			System.exit(1);
 		}
@@ -203,13 +200,17 @@ public class FileReader {
         System.out.println("Created WORDS file. ("+instrWords+" ms)");
         System.out.println();
         
-        System.out.println("Please enter the value of minsup:");
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); 
-        try{
-        	minsup=Double.parseDouble(br.readLine());
-        }catch (Exception e) {
-        	System.out.println("Error!");
-        }
+        do {
+	        System.out.println("Please enter the value of minsup:");
+	        System.out.flush();
+	        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); 
+	        try{
+	        	minsup=Double.parseDouble(br.readLine());
+	        }catch (Exception e) {
+	        	System.out.println("Error!");
+	        	minsup = -1;
+	        }
+        } while (minsup < 0);
         
         
         ///////////////////////////
@@ -219,25 +220,45 @@ public class FileReader {
         instrAlgorithm = System.currentTimeMillis();
         
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
-        System.out.println("Please enter the specific word:");
-        BufferedReader br2 = new BufferedReader(new InputStreamReader(System.in)); 
-        try{
-        	specificWord=br2.readLine();
-        }catch (Exception e) {
-        	System.out.println("Error!");
-        }
-        System.out.println("Please enter the value of minconf:");
-        BufferedReader br1 = new BufferedReader(new InputStreamReader(System.in)); 
-        try{
-        	minconf=Double.parseDouble(br1.readLine());
-        }catch (Exception e) {
-        	System.out.println("Error!");
-        }
-        generateAssociationRule(largeItemset,idWords);
-        System.out.println();
         
         instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
         System.out.println("Finished. ("+instrAlgorithm+" ms)");
+        
+        ////////////////////////////////
+        // Generate association rules
+        ////////////////////////////////
+        
+        for (;;) {
+	        do {
+		        System.out.println("Please enter the specific word, or a period (.) to quit:");
+		        System.out.flush();
+		        BufferedReader br2 = new BufferedReader(new InputStreamReader(System.in)); 
+		        try{
+		        	specificWord=br2.readLine().toLowerCase();
+		        }catch (Exception e) {
+		        	System.out.println("Error!");
+		        	specificWord = null;
+		        }
+	        } while (specificWord == null || "".equals(specificWord));
+	        
+	        if (".".equals(specificWord))
+	        	break;
+	        
+	        do {
+		        System.out.println("Please enter the value of minconf:");
+		        System.out.flush();
+		        BufferedReader br1 = new BufferedReader(new InputStreamReader(System.in)); 
+		        try{
+		        	minconf=Double.parseDouble(br1.readLine());
+		        }catch (Exception e) {
+		        	System.out.println("Error!");
+		        	minconf = -1;
+		        }
+	        } while (minconf < 0);
+	        
+	        generateAssociationRule(largeItemset);
+	        System.out.println();
+        }
 	}
 	
 	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
@@ -252,25 +273,33 @@ public class FileReader {
 		return largeItemsets;
 	}
 
-	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset, HashMap<Integer, String> idWords){
+	public static void generateAssociationRule(ArrayList<SortedSet<Itemset>> largeItemset){
 		ArrayList<Rule> rules = new ArrayList<Rule>(); 
 		
 		for(int i=2;i<=3;i++){
-//			System.out.println("DEBUG: generateAssociationRule: i=" + i);
+			System.out.println("DEBUG: generateAssociationRule: i=" + i);
 			if (largeItemset.size() <= i) {
-//				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
+				System.out.println("DEBUG: generateAssociationRule: break because largeItemset has "+largeItemset.size()+" items");
 				break;
 			}
 			SortedSet<Itemset> aLargeItemsetSet = largeItemset.get(i);
 		    
 			for(Iterator<Itemset> it=aLargeItemsetSet.iterator(); it.hasNext(); /* */){
-				int specificId = wordIds.get(specificWord);
+				Integer specificId = wordIds.get(specificWord);
+				if (specificId == null) {
+					System.out.println("No transactions contain the word: "+specificWord);
+					return;
+				}
 				int[] rangeIdSpecific= { Itemset.posToRange(specificId) };
 				int[] wordIdSpecific = { Itemset.posToBitmask(specificId) };
 				Itemset specificItem = new Itemset(rangeIdSpecific, wordIdSpecific);
 //				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
-				if(itset.contains(specificItem) ){
+				if(!itset.contains(specificItem) ) {
+					System.out.println("DEBUG: itset does not contain: "+specificWord+" id="+specificId);
+					continue;
+				}
+				
 				String[] words=new String[i];
 				List<Integer> ids = itset.getIds();
 				for(int j=0; j<ids.size(); j++){
@@ -367,9 +396,6 @@ public class FileReader {
 					
 				}
 				
-			}else{
-				break;
-			}
 		}
 		}
 		
