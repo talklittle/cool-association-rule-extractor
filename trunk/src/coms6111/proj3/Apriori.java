@@ -29,7 +29,7 @@ public class Apriori {
 	
 	// INSTRUMENTATION
 	static long instrAprioriPrune = 0, instrAprioriPruneCount = 0;
-	
+
 	public Apriori(HashMap<String, Integer> newDocIds,
 			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, String> newIdWords,

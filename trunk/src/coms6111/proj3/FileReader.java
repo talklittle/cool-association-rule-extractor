@@ -23,6 +23,8 @@ import java.util.StringTokenizer;
 import java.util.TreeMap; 
 import java.util.TreeSet;
 
+import com.sun.java_cup.internal.runtime.Scanner;
+
 
 
 public class FileReader {
@@ -35,7 +37,7 @@ public class FileReader {
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static double minsup, minconf;
-	
+	static String specificWord;
 	// INSTRUMENTATION
 	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
 	static long instrItemsetSupport = 0, instrItemsetSupportCount = 0;
@@ -43,7 +45,7 @@ public class FileReader {
 	
 	public static void usage() {
 		System.out.println("Usage:");
-		System.out.println("java FileReader <Yahoo|20newsgroups> <minsup> <minconf>");
+		System.out.println("java FileReader <Yahoo|20newsgroups>");
 	}
 	
 	public static void main(String[] args) throws IOException{
@@ -61,13 +63,13 @@ public class FileReader {
 			usage();
 			System.exit(1);
 		}
-		try {
-			minsup = Double.parseDouble(args[1]);
-			minconf = Double.parseDouble(args[2]);
-		} catch (Exception e) {
-			usage();
-			System.exit(1);
-		}
+		//try {
+			//minsup = Double.parseDouble(args[1]);
+			//minconf = Double.parseDouble(args[2]);
+		//} catch (Exception e) {
+			//usage();
+			//System.exit(1);
+		//}
 		
 		instrIndex = System.currentTimeMillis();
 		
@@ -201,6 +203,15 @@ public class FileReader {
         System.out.println("Created WORDS file. ("+instrWords+" ms)");
         System.out.println();
         
+        System.out.println("Please enter the value of minsup:");
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); 
+        try{
+        	minsup=Double.parseDouble(br.readLine());
+        }catch (Exception e) {
+        	System.out.println("Error!");
+        }
+        
+        
         ///////////////////////////
         // Run Apriori algorithm
         ///////////////////////////
@@ -208,6 +219,20 @@ public class FileReader {
         instrAlgorithm = System.currentTimeMillis();
         
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
+        System.out.println("Please enter the specific word:");
+        BufferedReader br2 = new BufferedReader(new InputStreamReader(System.in)); 
+        try{
+        	specificWord=br2.readLine();
+        }catch (Exception e) {
+        	System.out.println("Error!");
+        }
+        System.out.println("Please enter the value of minconf:");
+        BufferedReader br1 = new BufferedReader(new InputStreamReader(System.in)); 
+        try{
+        	minconf=Double.parseDouble(br1.readLine());
+        }catch (Exception e) {
+        	System.out.println("Error!");
+        }
         generateAssociationRule(largeItemset,idWords);
         System.out.println();
         
@@ -237,9 +262,15 @@ public class FileReader {
 				break;
 			}
 			SortedSet<Itemset> aLargeItemsetSet = largeItemset.get(i);
+		    
 			for(Iterator<Itemset> it=aLargeItemsetSet.iterator(); it.hasNext(); /* */){
+				int specificId = wordIds.get(specificWord);
+				int[] rangeIdSpecific= { Itemset.posToRange(specificId) };
+				int[] wordIdSpecific = { Itemset.posToBitmask(specificId) };
+				Itemset specificItem = new Itemset(rangeIdSpecific, wordIdSpecific);
 //				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
+				if(itset.contains(specificItem) ){
 				String[] words=new String[i];
 				List<Integer> ids = itset.getIds();
 				for(int j=0; j<ids.size(); j++){
@@ -253,11 +284,7 @@ public class FileReader {
 //					System.out.println("DEBUG: generateAssociationRule: looking at next word");
 					
 					String word=idWords.get(wId);
-					//int[] rangeId= { Itemset.posToRange(wId) };
-					//int[] wordId= { Itemset.posToBitmask(wId) };
-					//Itemset wordItem = new Itemset(rangeId, wordId);
-					//double wordSupport=getItemsetSupport(wordItem);
-					//double confidence=itemsetSupport/wordSupport;
+					
 //					System.out.println("DEBUG: generateAssociationRule: word: "+word+" wordId="+wId+" wordsupp:"+wordSupport+" conf:"+confidence
 //							+" wordItem.size="+wordItem.getNumWords());
 //					System.out.println("DEBUG: generateAssociationRule: docCount="+wordDocs.get(wId).getNumWords());
@@ -340,7 +367,10 @@ public class FileReader {
 					
 				}
 				
+			}else{
+				break;
 			}
+		}
 		}
 		
 		// Print in decreasing order of confidence
