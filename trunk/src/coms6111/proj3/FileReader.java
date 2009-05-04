@@ -104,6 +104,10 @@ public class FileReader {
             		Itemset putMe = wordDocs.get(wordIds.get(j)).addAndCopy(docRange, docBitmask);
             		wordDocs.put(wordIds.get(j), putMe);
 //            		// DEBUG
+            		if (j.equals("dolphins")) {
+            			System.out.println("DEBUG: add dolphins count="+wordDocs.get(wordIds.get(j)).getNumWords()
+    					+ " docId="+docIds.get(aFile));			
+            		}
 //            		if (j.equals("protestant")) {
 //            			System.out.println("DEBUG: add protestant count="+wordDocs.get(wordIds.get(j)).getNumWords()
 //            					+ " docId="+docIds.get(aFile));
@@ -301,7 +305,7 @@ public class FileReader {
 //				System.out.println("DEBUG: generateAssociationRule: looking at next itemset");
 				Itemset itset = it.next();
 				if(!itset.contains(specificItem) ) {
-					System.out.println("DEBUG: itset does not contain: "+specificWord+" id="+specificId);
+//					System.out.println("DEBUG: itset does not contain: "+specificWord+" id="+specificId);
 					continue;
 				}
 				
@@ -538,10 +542,10 @@ public class FileReader {
 	    	FileWriter writer = new FileWriter(LARGE);
 	    	// Output in decreasing order of support
 	    	for (int i = allLargeItemsets.length - 1; i >= 0; i--) {
-	    		List<Integer> wordIds = allLargeItemsets[i].getIds();
-	    		String[] words = new String[wordIds.size()];
+	    		List<Integer> myWordIds = allLargeItemsets[i].getIds();
+	    		String[] words = new String[myWordIds.size()];
 	    		for (int j = 0; j < words.length; j++) {
-	    			words[j] = idWords.get(wordIds.get(j));
+	    			words[j] = idWords.get(myWordIds.get(j));
 	    		}
 	    		// On each line, print the words of itemset in alphabetical order
 	    		Arrays.sort(words);
@@ -573,15 +577,27 @@ public class FileReader {
 //		System.out.println("DEBUG: itemsetSupport does not contain key (next line)");
 //		itset.debugPrintWords(idWords);
 		
-    	Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
-    	if (docIdsOfThisItset == null) {
-            // XXX This should not happen since COMMON words should has been removed...
-            return 0.0;
+    	if (itset.getNumWords() == 0) {
+    		support = 0.0;
+    	} else {
+	    	int firstRange = itset.ranges[0];
+	    	int firstWord = Bits.getFirstBit(itset.words[0]);
+	    	int firstId = (32*firstRange) + Bits.getPosFromLeft(firstWord);
+	    	
+	    	// Get docs containing first word
+	    	Itemset docsContainingFirst = wordDocs.get(firstId);
+	    	List<Integer> docsContainingFirstIds = docsContainingFirst.getIds();
+	    	
+	    	// See if these docs contain all words
+	    	for (Integer id : docsContainingFirstIds) {
+	    		if (docWords.get(id).contains(itset))
+	    			support += 1.0;
+	    	}
+	    	
+	    	support /= ((double)docIds.size()); // Ratio of containing transactions
     	}
-
-    	support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing transactions
 		itemsetSupport.put(itset, support);
-    	
+		
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
 		
