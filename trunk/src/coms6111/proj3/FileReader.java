@@ -86,6 +86,7 @@ public class FileReader {
 		SortedSet<Integer> wordsInDoc;
 		int wordsPosIndex=0, docsPosIndex=0;
 		for(String aFile:fileList){
+			System.out.println("DEBUG: main: file "+aFile+" pos="+docsPosIndex);
             docIds.put(aFile, docsPosIndex++);
 			fileContent=getContentByLocalFile (new File(aFile));
             content=getSplitContent(fileContent);
@@ -153,8 +154,13 @@ public class FileReader {
         	sortedWords.remove(s);
         	
         	// remove the word from all Transactions
-        	for (Itemset transaction : docWords.values()) {
-        		transaction.remove(Itemset.posToRange(sPos), Itemset.posToBitmask(sPos));
+        	Itemset transaction;
+        	for (Integer transactionId : docIds.values()) {
+        		transaction = docWords.get(transactionId);
+        		if (!transaction.remove(Itemset.posToRange(sPos), Itemset.posToBitmask(sPos))) {
+        			System.err.println("WARN: Eliminate COMMON word "+s+" pos="+sPos
+        					+" from transaction "+transactionId+" failed");
+        		}
         	}
         	// remove the word from table keys
         	wordDocs.remove(sPos);
@@ -367,44 +373,21 @@ public class FileReader {
     		documentsPosition.put(fileList.get(i), i);
     	}
     	return documentsPosition;
-    	
     }
+    
     public static double getItemsetSupport(Itemset itset){
     	double support = 0.0;
     	
 //    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //    	instrItemsetSupportCount++;
     	
-    	List<Integer> myWordIds = itset.getIds();
-    	if (wordIds.size() == 0) {
-			// XXX This should not happen since COMMON words should have been removed...
-			return 0.0;
-		}
-    	
-    	// Get the set of documents containing the first word
-    	Itemset docsContainingFirstWord;
-    	int i = 0;
-    	do {
-    		docsContainingFirstWord = wordDocs.get(myWordIds.get(i++));
-    	} while (docsContainingFirstWord == null && i < myWordIds.size());
-    	if (docsContainingFirstWord == null) {
-			// XXX This should not happen since COMMON words should have been removed...
-    		return 0.0;
+    	Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
+    	if (docIdsOfThisItset == null) {
+            // XXX This should not happen since COMMON words should has been removed...
+            return 0.0;
     	}
-    	
-    	// Use the documents containing first word, and see if they contain all words.
-    	List<Integer> docsContainingFirstWordIds = docsContainingFirstWord.getIds();
-    	for (Integer doc : docsContainingFirstWordIds) {
-    		try {
-	    		if (docWords.get(doc).contains(itset))
-	    			support += 1.0;
-    		} catch (NullPointerException e) {
-    			System.err.println("ERROR: getItemSupport: doc="+doc);
-    		}
-    	}
-		
-//		System.out.println("DEBUG: getItemsetSupport: itset (next line) numBits: "+itset.getNumWords()+ " # transactions="+support);
-		support /= ((double)docIds.size()); // Ratio of containing Transactions to all Transactions
+
+    	support = ((double)docIdsOfThisItset.size()) / ((double)docWords.size()); // Ratio of containing transactions
 		
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
