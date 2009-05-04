@@ -28,9 +28,11 @@ public class Bits {
 	private static void initFirstBit256() {
 		firstBit256 = new HashMap<Integer, Integer>();
 		firstBit256.put(0, 0);
-		for (int i = 0x80; i >= 1; i = i >>> 1) {
+		for (int i = 0x80; i >= 1; i = (i >>> 1)) {
 			for (int j = i; j < 2*i; j++) {
-				firstBit256.put(j, i);
+				if (!firstBit256.containsKey(j)) {
+					firstBit256.put(j, i);
+				}
 			}
 		}
 	}
@@ -57,7 +59,7 @@ public class Bits {
 	
 	private static void initPosFromLeft() {
 		posFromLeft = new HashMap<Integer, Integer>();
-		for (int i = 0; i < 31; i++) {
+		for (int i = 0; i <= 31; i++) {
 			posFromLeft.put((0x80000000 >>> i), i);
 		}
 	}

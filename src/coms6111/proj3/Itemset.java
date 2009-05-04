@@ -14,7 +14,8 @@ public class Itemset implements Comparable<Itemset> {
 	public Itemset(SortedSet<Integer> wordPositions) {
 		TreeMap<Integer, Integer> rangesWords = new TreeMap<Integer, Integer>();
 		int rangeIndex, bitmask;
-		for (int i : wordPositions) {
+		for (Iterator<Integer> it = wordPositions.iterator(); it.hasNext(); /* */) {
+			int i = it.next();
 			rangeIndex = posToRange(i);
 			bitmask = posToBitmask(i);
 			if (rangesWords.containsKey(rangeIndex)) {
@@ -61,28 +62,38 @@ public class Itemset implements Comparable<Itemset> {
 	 */
 	public Set<Integer> getDocIdsIntersection(HashMap<Integer, Itemset> wordDocs) {
 		HashSet<Integer> intersectionDocs = new HashSet<Integer>();
-		HashSet<Integer> unionDocs = new HashSet<Integer>();
+		HashSet<Integer> unionDocs = null;
 		List<Integer> myIds = this.getIds();
+		boolean firstPass = true;
 		
 		for (Integer wordId : myIds) {
 			Itemset docsContainingWord = wordDocs.get(wordId);
+			
+			// Don't want to union with everything; union with the current intersection
+			unionDocs = intersectionDocs;
+			intersectionDocs = new HashSet<Integer>();
+			
 			if (docsContainingWord == null) {
 				// This should not happen, since COMMON words should have been removed from index tables...
-//				System.err.println("ERROR: getDocIds: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
+				System.err.println("ERROR: getDocIdsIntersection: docsContainingWord is null. wordId: "+wordId+" word: "+FileReader.idWords.get(wordId));
 				continue;
 			}
+//			System.out.println("DEBUG: getDocIdsIntersection: wordId="+wordId+" rangeId="+posToRange(wordId)
+//					+" docsContainingWordLen=" + docsContainingWord.getNumWords());
 			
-			// Need to create a Set because retainAll doesn't work correctly with List
-			for (Integer docId : docsContainingWord.getIds()) {
-				if (!unionDocs.add(docId))
-					intersectionDocs.add(docId); // Holds "duplicates"
+			if (firstPass) {
+				intersectionDocs.addAll(docsContainingWord.getIds());
+				firstPass = false;
+			} else {
+				for (Integer docId : docsContainingWord.getIds()) {
+					if (!unionDocs.add(docId))
+						intersectionDocs.add(docId); // Holds "duplicates"
+				}
 			}
 		}
 		
-		if (this.getNumWords() == 1)
-			return unionDocs;
-		else
-			return intersectionDocs;
+//		System.out.println("DEBUG: getDocIdsIntersection: return intersectionDocsLen="+intersectionDocs.size());
+		return intersectionDocs;
 	}
 	
 //	/**
@@ -178,14 +189,14 @@ public class Itemset implements Comparable<Itemset> {
 	}
 	
 	public boolean containsRange(int rangeId) {
-		return getRangePos(rangeId) != -1;
+		return (getRangePos(rangeId) != -1);
 	}
 	
 	public boolean containsWords(int rangeId, int bitmask) {
 		int rangePos = getRangePos(rangeId);
 		if (rangePos == -1)
 			return false;
-		return (words[rangePos] & bitmask) == bitmask;
+		return ((words[rangePos] & bitmask) == bitmask);
 	}
 	
 	public boolean containsWordIds(List<Integer> wordIds) {
@@ -268,13 +279,17 @@ public class Itemset implements Comparable<Itemset> {
 	
 	private List<Integer> rangeToWordIds(int rangeId) {
 		ArrayList<Integer> wordIds = new ArrayList<Integer>();
-		int base = rangeId * 32;
 		int rangePos = getRangePos(rangeId);
 		if (rangePos == -1) {
 			System.err.println("ERROR: rangeToWordIds: Bad rangeId "+rangeId);
 			return wordIds;
 		}
+		if (rangeId != ranges[rangePos]) {
+			System.err.println("ERROR: rangeToWordIds: rangeId != ranges[rangePos]"
+					+" ("+rangeId+" != "+ranges[rangePos]+")");
+		}
 		
+		int base = rangeId * 32;
 		int bitmask = words[rangePos];
 		int firstbit;
 		
