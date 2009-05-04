@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -33,6 +34,7 @@ public class FileReader {
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
+	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
 	static String specificWord;
 	// INSTRUMENTATION
@@ -222,7 +224,7 @@ public class FileReader {
         ArrayList<SortedSet<Itemset>> largeItemset=runApriori(sortedWords);
         
         instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
-        System.out.println("Finished. ("+instrAlgorithm+" ms)");
+        System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
         
         ////////////////////////////////
         // Generate association rules
@@ -259,6 +261,7 @@ public class FileReader {
 	        generateAssociationRule(largeItemset);
 	        System.out.println();
         }
+        outputItemsets(largeItemset);
 	}
 	
 	public static ArrayList<SortedSet<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
@@ -326,9 +329,11 @@ public class FileReader {
 							Itemset wordsItem=new Itemset(rangeId, wordId);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
+							String confStr = String.format("%.4f", confidence * 100);
+							String supStr = String.format("%.4f", itemsetSupport * 100);
 							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+words[1]+words[2]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+										"["+words[1]+", "+words[2]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
 									break;
 								}
@@ -340,9 +345,11 @@ public class FileReader {
 							Itemset wordsItem=new Itemset(rangeId, wordId);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
+							String confStr = String.format("%.4f", confidence * 100);
+							String supStr = String.format("%.4f", itemsetSupport * 100);
 							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+words[0]+words[2]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+										"["+words[0]+", "+words[2]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
 									break;
 								}
@@ -355,9 +362,11 @@ public class FileReader {
 							Itemset wordsItem=new Itemset(rangeId, wordId);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
+							String confStr = String.format("%.4f", confidence * 100);
+							String supStr = String.format("%.4f", itemsetSupport * 100);
 							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+words[0]+words[1]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+										"["+words[0]+", "+words[1]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
 									break;
 								}
@@ -370,9 +379,11 @@ public class FileReader {
 							Itemset wordsItem=new Itemset(rangeId, wordId);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
+							String confStr = String.format("%.4f", confidence * 100);
+							String supStr = String.format("%.4f", itemsetSupport * 100);
 							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+words[1]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+										"["+words[1]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
 									break;
 								}
@@ -383,9 +394,11 @@ public class FileReader {
 							Itemset wordsItem=new Itemset(rangeId, wordId);
 							double wordsSupport=getItemsetSupport(wordsItem);
 							double confidence=itemsetSupport/wordsSupport;
+							String confStr = String.format("%.4f", confidence * 100);
+							String supStr = String.format("%.4f", itemsetSupport * 100);
 							if(confidence>minconf){
 								rules.add(new Rule(confidence,
-										"["+words[0]+"] => ["+word+"] ("+"Conf:"+confidence+", Supp:"+itemsetSupport+")"));
+										"["+words[0]+"] => ["+word+"] ("+"Conf:"+confStr+"%, Supp:"+supStr+"%)"));
 								}else{
 									break;
 								}
@@ -498,12 +511,57 @@ public class FileReader {
     	return documentsPosition;
     }
     
+    public static void outputItemsets(ArrayList<SortedSet<Itemset>> itemsets) {
+    	Itemset[] allLargeItemsets;
+    	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
+    	for (SortedSet<Itemset> ss : itemsets) {
+    		tmpLargeItemsets.addAll(ss);
+    	}
+    	allLargeItemsets = tmpLargeItemsets.toArray(new Itemset[0]);
+    	Arrays.sort(allLargeItemsets, new ItemsetSupportComparator());
+    	File LARGE = new File("LARGE");
+        if (LARGE.exists())
+        	LARGE.delete();
+    	try {
+            LARGE.createNewFile();
+	    	FileWriter writer = new FileWriter(LARGE);
+	    	// Output in decreasing order of support
+	    	for (int i = allLargeItemsets.length - 1; i >= 0; i--) {
+	    		List<Integer> wordIds = allLargeItemsets[i].getIds();
+	    		String[] words = new String[wordIds.size()];
+	    		for (int j = 0; j < words.length; j++) {
+	    			words[j] = idWords.get(wordIds.get(j));
+	    		}
+	    		// On each line, print the words of itemset in alphabetical order
+	    		Arrays.sort(words);
+	    		writer.write("[");
+	    		for (int j = 0; j < words.length - 1; j++) {
+	    			writer.write(words[j] + ",");
+	    		}
+	    		writer.write(words[words.length-1] + "], ");
+	    		writer.write(String.format("%.4f", getItemsetSupport(allLargeItemsets[i])*100));
+	    		writer.write("%\n");
+	    	}
+	    	writer.close();
+    	} catch (IOException e) {
+    		System.err.println(e.getLocalizedMessage());
+    	}
+    }
+    
     public static double getItemsetSupport(Itemset itset){
     	double support = 0.0;
     	
 //    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //    	instrItemsetSupportCount++;
     	
+    	if (itemsetSupport.containsKey(itset)) {
+//			System.out.println("DEBUG: itemsetSupport contains key (next line)");
+//			itset.debugPrintWords(idWords);
+			return itemsetSupport.get(itset);
+		}
+//		System.out.println("DEBUG: itemsetSupport does not contain key (next line)");
+//		itset.debugPrintWords(idWords);
+		
     	Set<Integer> docIdsOfThisItset = itset.getDocIdsIntersection(wordDocs);
     	if (docIdsOfThisItset == null) {
             // XXX This should not happen since COMMON words should has been removed...
@@ -511,12 +569,24 @@ public class FileReader {
     	}
 
     	support = ((double)docIdsOfThisItset.size()) / ((double)docIds.size()); // Ratio of containing transactions
-		
+		itemsetSupport.put(itset, support);
+    	
 //		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
 		
     	return support;
     }
-   
 
+
+    public static class ItemsetSupportComparator implements Comparator<Itemset> {
+    	public int compare(Itemset it1, Itemset it2) {
+    		double it1Sup = getItemsetSupport(it1);
+    		double it2Sup = getItemsetSupport(it2);
+    		if (it1Sup < it2Sup)
+    			return -1;
+    		if (it1Sup > it2Sup)
+    			return 1;
+    		return 0;
+    	}
+    }
 }
