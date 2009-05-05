@@ -33,7 +33,8 @@ public class FileReader {
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
-	static HashMap<Integer[], Itemset> multiwordDocs=new HashMap<Integer[], Itemset>();
+	static HashMap<Integer, HashMap<Integer, Itemset>> multiwordDocs
+			= new HashMap<Integer, HashMap<Integer, Itemset>>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
@@ -559,14 +560,21 @@ public class FileReader {
     		for (Iterator<Integer> itb = wordsInDoc.tailSet(afterA).iterator(); itb.hasNext(); /* */) {
     			Integer b = itb.next();
     			Integer[] ab = {a, b};
-    			Arrays.sort(ab);
-    			if (multiwordDocs.containsKey(ab)) {
-    				multiwordDocs.put(ab, multiwordDocs.get(ab).addAndCopy(docRange[0], docBitmask[0]));
+    			Arrays.sort(ab); // Just in case
+    			if (multiwordDocs.containsKey(ab[0])) {
+    				HashMap<Integer, Itemset> tmpa = multiwordDocs.get(ab[0]);
+    				if (tmpa.containsKey(ab[1])) {
+    					tmpa.put(ab[1], tmpa.get(ab[1]).addAndCopy(docRange[0], docBitmask[0]));
+    				} else {
+    					tmpa.put(ab[1], new Itemset(docRange, docBitmask));
+    				}
     			} else {
-    				multiwordDocs.put(ab, new Itemset(docRange, docBitmask));
+    				HashMap<Integer, Itemset> tmpa = new HashMap<Integer, Itemset>();
+    				tmpa.put(ab[1], new Itemset(docRange, docBitmask));
+    				multiwordDocs.put(ab[0], tmpa);
     			}
-    			System.out.println("DEBUG: updateMultiwordDocs: added ab={"+ab[0]+","+ab[1]+"} new numbits="
-    					+multiwordDocs.get(ab).getNumBits());
+//    			System.out.println("DEBUG: updateMultiwordDocs: added ab={"+a+","+b+"} new numbits="
+//    					+multiwordDocs.get(a).get(b).getNumBits());
     		}
     	}
     }
