@@ -565,6 +565,8 @@ public class FileReader {
     			} else {
     				multiwordDocs.put(ab, new Itemset(docRange, docBitmask));
     			}
+    			System.out.println("DEBUG: updateMultiwordDocs: added ab={"+ab[0]+","+ab[1]+"} new numbits="
+    					+multiwordDocs.get(ab).getNumBits());
     		}
     	}
     }
