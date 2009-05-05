@@ -101,9 +101,9 @@ public class Apriori {
 			}
 		}
 		
-		// DEBUG INSTRUMENTATION
-		System.out.println("aprioriGenPrune: " + instrAprioriPrune+" ms " + instrAprioriPruneCount);
-		System.out.println("instrCombineIds: " + instrCombineIds+" ms " + instrCombineIdsCount);
+//		// DEBUG INSTRUMENTATION
+//		System.out.println("aprioriGenPrune: " + instrAprioriPrune+" ms " + instrAprioriPruneCount);
+//		System.out.println("instrCombineIds: " + instrCombineIds+" ms " + instrCombineIdsCount);
 		
 		return L;
 	}

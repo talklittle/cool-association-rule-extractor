@@ -46,7 +46,7 @@ public class FileReader {
 	static long instrItemsetSupport = 0, instrItemsetSupportCount = 0;
 	static long instrGlimpseSupport = 0, instrGlimpseSupportCount = 0;
 	static long instrOutputItemsets = 0, instrOutputItemsetsCount = 0;
-	static long instrAlgorithm = 0;
+	static long instrAlgorithm = 0, instrLarge = 0;
 	
 	static Runtime rt;
 	
@@ -281,12 +281,15 @@ public class FileReader {
 	        
 	        System.out.println("Finding large itemsets...");
 	        instrAlgorithm = System.currentTimeMillis();
-	        
 	        ArrayList<List<Itemset>> largeItemset=runApriori(sortedWords);
-	        outputItemsets(largeItemset);
-	        
 	        instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
-	        System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
+	        System.out.println("Found large itemsets. ("+instrAlgorithm+" ms)");
+	        
+	        System.out.println("Outputting large itemsets to file LARGE...");
+	        instrLarge = System.currentTimeMillis();
+	        outputItemsets(largeItemset);
+	        instrLarge = System.currentTimeMillis() - instrLarge;
+	        System.out.println("Created file LARGE. ("+instrLarge+" ms)");
 	        
 	        ////////////////////////////////
 	        // Generate association rules
@@ -330,9 +333,9 @@ public class FileReader {
 	        	break;
 		}
         
-        System.out.println("instrItemsetSupport: "+instrItemsetSupport+" ms "+instrItemsetSupportCount);
-        System.out.println("instrGlimpseSupport: "+instrGlimpseSupport+" ms "+instrGlimpseSupportCount);
-        System.out.println("instrOutputItemsets: "+instrOutputItemsets+" ms "+instrOutputItemsetsCount);
+//        System.out.println("instrItemsetSupport: "+instrItemsetSupport+" ms "+instrItemsetSupportCount);
+//        System.out.println("instrGlimpseSupport: "+instrGlimpseSupport+" ms "+instrGlimpseSupportCount);
+//        System.out.println("instrOutputItemsets: "+instrOutputItemsets+" ms "+instrOutputItemsetsCount);
 	}
 	
 	public static ArrayList<List<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
