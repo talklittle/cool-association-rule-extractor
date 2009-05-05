@@ -673,6 +673,7 @@ public class FileReader {
     	if (itemsetSupport.containsKey(itset)) {
 //			System.out.println("DEBUG: itemsetSupport contains key (next line)");
 //			itset.debugPrintWords(idWords);
+    		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 			return itemsetSupport.get(itset);
 		}
 //		System.out.println("DEBUG: itemsetSupport does not contain key (next line)");
@@ -700,8 +701,9 @@ public class FileReader {
     		Process glimpse = rt.exec("/home/gravano/Bin/glimpse -i -w -N -y '"+joinedWords+"'");
     		BufferedReader in = new BufferedReader(new InputStreamReader(glimpse.getInputStream()));
     		String line = in.readLine();
+    		in.close();
     		if ("".equals(line)) {
-    			glimpse.destroy();
+//    			glimpse.destroy();
     			instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
     			return 0.0;
     		}
@@ -712,7 +714,7 @@ public class FileReader {
     		for (int i = 5; i < 7; i++)
     			st.nextToken();
     		Double denominator = Double.parseDouble(st.nextToken()); // 8th word
-    		glimpse.destroy();
+//    		glimpse.destroy();
     		instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
     		return numerator / denominator;
 		} catch (IOException e) {
