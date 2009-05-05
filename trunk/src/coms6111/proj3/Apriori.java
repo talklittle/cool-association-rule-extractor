@@ -320,11 +320,9 @@ public class Apriori {
 	 * @return
 	 */
 	public static long combination(int top, int bottom) {
-		Integer[] c = { top, bottom };
-		if (combinationTable.containsKey(c))
-			return combinationTable.get(c);
-		combinationTable.put(c, factorial(top) / (factorial(bottom) * factorial(top-bottom)));
-		return combinationTable.get(c);
+		if (top - bottom == 1)
+			return top;
+		return factorial(top) / factorial(bottom) / factorial(top-bottom);
 	}
 	
 	public static long factorial(int n) {
