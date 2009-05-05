@@ -28,7 +28,7 @@ public class Apriori {
 	private HashMap<String, Integer> wordIds;
 	private HashMap<Integer, String> idWords;
 	private HashMap<Integer, Itemset> wordDocs;
-	private HashMap<Integer, HashMap<Integer, Itemset>> multiwordDocs;
+	private HashMap<Integer, TreeSet<Integer>> multiwordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
 	private HashSet<Integer> smallWordIds = new HashSet<Integer>(); // single words that are not large 1-itemsets
@@ -43,7 +43,7 @@ public class Apriori {
 			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
-			       HashMap<Integer, HashMap<Integer, Itemset>> newMultiwordDocs,
+			       HashMap<Integer, TreeSet<Integer>> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
@@ -63,7 +63,7 @@ public class Apriori {
 			       HashMap<String, Integer> newWordsPosition,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
-			       HashMap<Integer, HashMap<Integer, Itemset>> newMultiwordDocs,
+			       HashMap<Integer, TreeSet<Integer>> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
@@ -122,43 +122,34 @@ public class Apriori {
 				
 				if (smallWordIds.contains(idA)) {
 					// This should not happen if getLarge1Itemsets() is correct!
+					System.err.println("ERROR: aprioriGen: smallWordIds contains idA="+idA);
 					continue;
 				}
 				
-				for (int j = i+1; j < prevL.size(); j++) {
-					Itemset itsb = prevL.get(j);
-					Integer idB = (itsb.ranges[0] * 32) + Bits.getPosFromLeft(itsb.words[0]);
-					Integer[] ab = { idA, idB };
-					Arrays.sort(ab); // just in case
+				SortedSet<Integer> docIdsShared = multiwordDocs.get(idA);
+				for (Iterator<Integer> itj = docIdsShared.iterator(); itj.hasNext(); /* */) {
+					Integer idB = itj.next();
+//					System.out.println("DEBUG: aprioriGen: idA="+idA+"idB="+idB);
+					
+					if (smallWordIds.contains(idB)) {
+						continue;
+					}
 
-					// Prune
-					HashMap<Integer, Itemset> tmp = multiwordDocs.get(ab[0]);
-					if (tmp == null) {
-						// idA does not appear in any docs...? Shouldn't happen
-						System.err.println("ERROR: aprioriGen: idA="+ab[0]+" has no entry in multiwordDocs");
-						continue;
-					}
-					Itemset sharedDocs = tmp.get(ab[1]);
-					if (sharedDocs == null) {
-						// The 2 words don't appear in the same documents
-//						System.out.println("DEBUG: aprioriGen: ab={"+ab[0]+","+ab[1]+"} not in multiwordDocs");
-						continue;
-					}
-					double theSup = (double)sharedDocs.getNumBits() / (double)docIds.size();
+					Itemset combined = itsa.addAndCopy(Itemset.posToRange(idB), 
+							Itemset.posToBitmask(idB));
+					
+					Itemset docIdsIntersection = combined.getDocIdsIntersection(wordDocs);
+					
+					double theSup = (double)docIdsIntersection.getNumBits() / (double)docIds.size();
 					if (theSup < minsup) {
 						// Not enough documents contain both. i.e., support too low
 						continue;
 					}
-					if (smallWordIds.contains(ab[1])) {
-						// idB is not a large itemset so give up.
-						// If getLarge1Itemsets() is correct, this should not happen.
-						System.err.println("ERROR: aprioriGen: idB="+ab[1]+" was a Small itemset");
-						continue;
-					}
 					
 					// Done pruning
-					Itemset addMe = new Itemset(Arrays.asList(ab));
-					newCandidates.add(addMe);
+					newCandidates.add(combined);
+//					System.out.println("DEBUG: aprioriGen: k=2 added combined(next line)");
+//					combined.debugPrintWords(idWords);
 //					if (supportItemsets.containsKey(theSup)) {
 //						supportItemsets.get(theSup).add(addMe);
 //					} else {
@@ -209,6 +200,7 @@ public class Apriori {
 	
 	private ArrayList<Itemset> aprioriGenPrune(List<Itemset> groupCandidates, List<Itemset> prevL, int k) {
 		ArrayList<Itemset> newCandidates = new ArrayList<Itemset>();
+		boolean pleaseContinue = false;
 		
 		instrAprioriPrune = System.currentTimeMillis() - instrAprioriPrune;
 		instrAprioriPruneCount++;
@@ -218,9 +210,26 @@ public class Apriori {
 			Itemset a = null;
 			for (int i = 0; i < groupCandidates.size() - 1; i++) {
 				a = groupCandidates.get(i);
+				List<Integer> idsInA = a.getIds();
 				
 				for (int j = i+1; j < groupCandidates.size(); j++) {
 					Itemset b = groupCandidates.get(j);
+					Integer bLastId = b.ranges[b.ranges.length-1]*32
+							+ Bits.getPosFromLeft(Bits.getLastBit(b.words[b.words.length-1]));
+					
+					pleaseContinue = false;
+					for (Integer idInA : idsInA) {
+						if (!multiwordDocs.get(idInA).contains(bLastId)) {
+							// the Id you're trying to add does not appear in any docs
+							// with one of the Ids from the first itemset
+//							System.out.println("DEBUG: aprioriGenPrune: idInA="+idInA
+//									+" does not share doc with bLastId="+bLastId);
+							pleaseContinue = true;
+							break;
+						}
+					}
+					if (pleaseContinue)
+						continue;
 					
 					// Combine a and b
 					Itemset combined = a.addAndCopy(b.ranges[b.ranges.length-1],
