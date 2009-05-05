@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -264,7 +265,7 @@ public class FileReader {
 	        instrAlgorithm = System.currentTimeMillis();
 	        
 	        ArrayList<List<Itemset>> largeItemset=runApriori(sortedWords);
-	        outputItemsets(apriori.supportItemsets);
+	        outputItemsets(largeItemset);
 	        
 	        instrAlgorithm = System.currentTimeMillis() - instrAlgorithm;
 	        System.out.println("Created file LARGE. ("+instrAlgorithm+" ms)");
@@ -615,15 +616,24 @@ public class FileReader {
      * Output large itemsets to a file LARGE in decreasing order of support
      * @param itemsets
      */
-    public static void outputItemsets(Map<Double, List<Itemset>> supportItemsets) {
+    public static void outputItemsets(List<List<Itemset>> itemsets) {
     	
     	instrOutputItemsets = System.currentTimeMillis() - instrOutputItemsets;
     	instrOutputItemsetsCount++;
     	
-    	ArrayList<Double> increasingSupport = new ArrayList<Double>();
-    	for (Iterator<Double> it = supportItemsets.keySet().iterator(); it.hasNext(); /* */) {
-    		increasingSupport.add(it.next());
+    	Itemset[] allLargeItemsets;
+    	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
+//    	long debugCounter = 0;
+    	
+    	for (List<Itemset> ss : itemsets) {
+//    		debugCounter += ss.size();
+    		tmpLargeItemsets.addAll(ss);
     	}
+    	//     System.out.println("DEBUG: outputItemsets: itemsets.size()="+itemsets.size()
+    	//                     +" total ss should be "+debugCounter+" tmpLargeItemsets.size()="+tmpLargeItemsets.size());
+    	allLargeItemsets = tmpLargeItemsets.toArray(new Itemset[0]);
+    	Arrays.sort(allLargeItemsets, new ItemsetSupportComparator());
+
     	
     	File LARGE = new File("LARGE");
         if (LARGE.exists())
@@ -632,26 +642,22 @@ public class FileReader {
             LARGE.createNewFile();
 	    	FileWriter writer = new FileWriter(LARGE);
 	    	// Output in decreasing order of support
-	    	for (int i = increasingSupport.size()-1; i >= 0; i--) {
-	    		Double support = increasingSupport.get(i);
-	    		List<Itemset> itemsets = supportItemsets.get(support);
-	    		for (int j = 0; j < itemsets.size(); j++) {
-		    		List<Integer> myWordIds = itemsets.get(j).getIds();
-		    		String[] words = new String[myWordIds.size()];
-		    		for (int k = 0; k < words.length; k++) {
-		    			words[k] = idWords.get(myWordIds.get(k));
-		    		}
-		    		// On each line, print the words of itemset in alphabetical order
-		    		Arrays.sort(words);
-		    		writer.write("[");
-		    		for (int k = 0; k < words.length - 1; k++) {
-		    			writer.write(words[k] + ",");
-		    		}
-		    		writer.write(words[words.length-1] + "], ");
-		    		writer.write(String.format("%.4f", support*100));
-		    		writer.write("%\n");
+	    	for (int i = allLargeItemsets.length - 1; i >= 0; i--) {
+	    		List<Integer> myWordIds = allLargeItemsets[i].getIds();
+	    		String[] words = new String[myWordIds.size()];
+	    		for (int j = 0; j < words.length; j++) {
+	    			words[j] = idWords.get(myWordIds.get(j));
 	    		}
-	    	}
+	    		// On each line, print the words of itemset in alphabetical order
+	    		Arrays.sort(words);
+	    		writer.write("[");
+	    		for (int k = 0; k < words.length - 1; k++) {
+	    			writer.write(words[k] + ",");
+	    		}
+	    		writer.write(words[words.length-1] + "], ");
+	    		writer.write(String.format("%.4f", getItemsetSupport(allLargeItemsets[i])*100));
+	    		writer.write("%\n");
+    		}
 	    	writer.close();
     	} catch (IOException e) {
     		System.err.println(e.getLocalizedMessage());
