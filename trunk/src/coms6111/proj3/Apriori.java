@@ -36,6 +36,7 @@ public class Apriori {
 	
 	// INSTRUMENTATION
 	static long instrAprioriPrune = 0, instrAprioriPruneCount = 0;
+	static long instrCombineIds = 0, instrCombineIdsCount = 0;
 
 	public Apriori(HashMap<String, Integer> newDocIds,
 			       HashMap<String, Integer> newWordIds,
@@ -99,8 +100,9 @@ public class Apriori {
 			}
 		}
 		
-		// DEBUG
-//		System.out.println("aprioriGenPrune: " + instrAprioriPrune+"ms " + instrAprioriPruneCount);
+		// DEBUG INSTRUMENTATION
+		System.out.println("aprioriGenPrune: " + instrAprioriPrune+" ms " + instrAprioriPruneCount);
+		System.out.println("instrCombineIds: " + instrCombineIds+" ms " + instrCombineIdsCount);
 		
 		return L;
 	}
@@ -261,6 +263,10 @@ public class Apriori {
 	}
 	
 	public SortedSet<Integer> getCombineIds(Itemset initial, int minimumId) {
+		
+		instrCombineIds = System.currentTimeMillis() - instrCombineIds;
+		instrCombineIdsCount++;
+		
 		SortedSet<Integer> combineIds = new TreeSet<Integer>();
 		Itemset docsWithInitial;
 		
@@ -278,6 +284,7 @@ public class Apriori {
 			if (tmp == null) {
 				// A is not in any documents with other words. This should not happen.
 				System.err.println("ERROR: getCombineIds: no multiwordDocs for a="+ab[0]);
+				instrCombineIds = System.currentTimeMillis() - instrCombineIds;
 				return combineIds;
 			}
 			docsWithInitial = tmp.get(ab[1]);
@@ -301,6 +308,7 @@ public class Apriori {
 				combineIds.add(wordId);
 			}
 		}
+		instrCombineIds = System.currentTimeMillis() - instrCombineIds;
 		return combineIds;
 	}
 	

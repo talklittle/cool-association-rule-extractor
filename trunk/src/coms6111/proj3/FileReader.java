@@ -40,10 +40,15 @@ public class FileReader {
 	static double minsup, minconf;
 	static int maxWordId;
 	static String specificWord;
+
 	// INSTRUMENTATION
 	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
 	static long instrItemsetSupport = 0, instrItemsetSupportCount = 0;
+	static long instrGlimpseSupport = 0, instrGlimpseSupportCount = 0;
+	static long instrOutputItemsets = 0, instrOutputItemsetsCount = 0;
 	static long instrAlgorithm = 0;
+	
+	static Runtime rt;
 	
 	public static void usage() {
 		System.out.println("Usage:");
@@ -73,7 +78,7 @@ public class FileReader {
 			//System.exit(1);
 		//}
 		
-		System.out.println("Creating index...");
+		System.out.println("Creating indexes...");
 		instrIndex = System.currentTimeMillis();
 		
 		// Initialize the Bits tables
@@ -142,8 +147,32 @@ public class FileReader {
 			updateMultiwordDocs(wordsInDoc, docIds.get(aFile));
 		}
 		maxWordId = wordsPosIndex - 1;
+		
+		// Create glimpse index
+		File glimpseIndexDir = new File("./index/");
+		if (glimpseIndexDir.exists()) {
+			System.out.println("./index/ exists. Deleting contents.");
+			File[] glimpseFiles = glimpseIndexDir.listFiles();
+			for (File f : glimpseFiles) {
+				f.delete();
+			}
+		} else {
+			glimpseIndexDir.mkdirs();
+		}
+		rt = Runtime.getRuntime();
+		Process glimpseindex = rt.exec("/home/gravano/Bin/glimpseindex -b -B -H ./index/ "+url);
+		try {
+			int retval = glimpseindex.waitFor();
+			if (retval != 0) {
+				System.err.println("glimpseindex returned with exit code "+retval);
+				System.exit(1);
+			}
+		} catch (InterruptedException e) {
+			System.err.println("glimpseindex interrupted");
+			System.exit(1);
+		}
 		instrIndex = System.currentTimeMillis() - instrIndex;
-		System.out.println("Created index in memory. ("+instrIndex+" ms)");
+		System.out.println("Created glimpse index and in-memory index. ("+instrIndex+" ms)");
 		
 		instrCommon = System.currentTimeMillis();
 		// Find the COMMON words
@@ -282,6 +311,10 @@ public class FileReader {
 	        if (".".equals(specificWord))
 	        	break;
 		}
+        
+        System.out.println("instrItemsetSupport: "+instrItemsetSupport+" ms "+instrItemsetSupportCount);
+        System.out.println("instrGlimpseSupport: "+instrGlimpseSupport+" ms "+instrGlimpseSupportCount);
+        System.out.println("instrOutputItemsets: "+instrOutputItemsets+" ms "+instrOutputItemsetsCount);
 	}
 	
 	public static ArrayList<List<Itemset>> runApriori(TreeMap<String, Integer> sortedwords) {
@@ -584,6 +617,10 @@ public class FileReader {
      * @param itemsets
      */
     public static void outputItemsets(List<List<Itemset>> itemsets) {
+    	
+    	instrOutputItemsets = System.currentTimeMillis() - instrOutputItemsets;
+    	instrOutputItemsetsCount++;
+    	
     	Itemset[] allLargeItemsets;
     	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
 //    	long debugCounter = 0;
@@ -623,13 +660,15 @@ public class FileReader {
     	} catch (IOException e) {
     		System.err.println(e.getLocalizedMessage());
     	}
+    	
+    	instrOutputItemsets = System.currentTimeMillis() - instrOutputItemsets;
     }
     
     public static double getItemsetSupport(Itemset itset){
     	double support = 0.0;
     	
-//    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
-//    	instrItemsetSupportCount++;
+    	instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
+    	instrItemsetSupportCount++;
     	
     	if (itemsetSupport.containsKey(itset)) {
 //			System.out.println("DEBUG: itemsetSupport contains key (next line)");
@@ -648,13 +687,55 @@ public class FileReader {
     	}
 		itemsetSupport.put(itset, support);
 		
-//		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
+		instrItemsetSupport = System.currentTimeMillis() - instrItemsetSupport;
 //		System.out.println("instrItemsetSupport millis =" + instrItemsetSupport);
 		
     	return support;
     }
 
+    public static double getGlimpseSupport(String joinedWords) {
+    	instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
+    	instrGlimpseSupportCount++;
+    	try {
+    		Process glimpse = rt.exec("/home/gravano/Bin/glimpse -i -w -N -y '"+joinedWords+"'");
+    		BufferedReader in = new BufferedReader(new InputStreamReader(glimpse.getInputStream()));
+    		String line = in.readLine();
+    		if ("".equals(line)) {
+    			glimpse.destroy();
+    			instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
+    			return 0.0;
+    		}
+    		StringTokenizer st = new StringTokenizer(line);
+    		for (int i = 0; i < 4; i++)
+    			st.nextToken();
+    		Double numerator = Double.parseDouble(st.nextToken()); // 5th word
+    		for (int i = 5; i < 7; i++)
+    			st.nextToken();
+    		Double denominator = Double.parseDouble(st.nextToken()); // 8th word
+    		glimpse.destroy();
+    		instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
+    		return numerator / denominator;
+		} catch (IOException e) {
+			System.err.println(e.getLocalizedMessage());
+			System.exit(1);
+		}
+		instrGlimpseSupport = System.currentTimeMillis() - instrGlimpseSupport;
+		return 0.0;
+    }
 
+    public static double getGlimpseSupport(String word1, String word2, String word3) {
+    	return getGlimpseSupport(word1+";"+word2+";"+word3);
+    }
+    
+    public static double getGlimpseSupport(String[] words) {
+    	String joined = "";
+    	for (int i = 0; i < words.length - 1; i++) {
+    		joined += words[i] + ";";
+    	}
+    	joined += words[words.length-1];
+    	return getGlimpseSupport(joined);
+    }
+    
     public static class ItemsetSupportComparator implements Comparator<Itemset> {
     	public int compare(Itemset it1, Itemset it2) {
     		double it1Sup = getItemsetSupport(it1);
