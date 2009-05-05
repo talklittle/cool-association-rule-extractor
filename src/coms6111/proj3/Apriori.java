@@ -262,11 +262,34 @@ public class Apriori {
 	
 	public SortedSet<Integer> getCombineIds(Itemset initial, int minimumId) {
 		SortedSet<Integer> combineIds = new TreeSet<Integer>();
+		Itemset docsWithInitial;
 		
 		double threshold = minsup * (double)docIds.size();
 //		Integer largestLtThreshold = 0; // Largest word count less than threshold
 		
-		Itemset docsWithInitial = initial.getDocIdsIntersection(wordDocs);
+		if (initial.getNumBits() == 2) {
+			// We can use multiwordDocs
+			Integer a = initial.ranges[0]*32 + Bits.getPosFromLeft(Bits.getFirstBit(initial.words[0]));
+			Integer b = initial.ranges[initial.ranges.length-1]*32
+					+ Bits.getPosFromLeft(Bits.getLastBit(initial.words[initial.words.length-1]));
+			Integer[] ab = { a, b };
+			Arrays.sort(ab); // Just in case
+			HashMap<Integer, Itemset> tmp = multiwordDocs.get(ab[0]);
+			if (tmp == null) {
+				// A is not in any documents with other words. This should not happen.
+				System.err.println("ERROR: getCombineIds: no multiwordDocs for a="+ab[0]);
+				return combineIds;
+			}
+			docsWithInitial = tmp.get(ab[1]);
+			if (docsWithInitial == null) {
+				// A and B do not share any docs. This should not happen since A and B are large 2-itemset
+				System.err.println("ERROR: getCombineIds: no multiwordDocs for ab={"+ab[0]+","+ab[1]+"}");
+			}
+		} else {
+			// Presumably slower than the above block; use with k >= 4 (not in this prog!)
+			System.err.println("WARN: getCombineIds: unexpected conditional branch");
+			docsWithInitial = initial.getDocIdsIntersection(wordDocs);
+		}
 		for (Integer wordId = minimumId; wordId <= maxWordId; wordId++) {
 			if (smallWordIds.contains(wordId) || !wordDocs.containsKey(wordId)) {
 				// Ignore word Ids below a minimum Id (preserve ordering)
