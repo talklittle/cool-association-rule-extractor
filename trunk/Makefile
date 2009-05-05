@@ -24,4 +24,4 @@ exec20newsgroups:
 	./run.sh 20newsgroups
 
 clean:
-	-rm -rf $(OUTDIR)
+	-rm -rf $(OUTDIR) ./index/
