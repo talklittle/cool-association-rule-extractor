@@ -32,13 +32,14 @@ public class FileReader {
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
-	static HashMap<Integer, TreeSet<Integer>> multiwordDocs = new HashMap<Integer, TreeSet<Integer>>();
+	static HashMap<Integer, TreeSet<Integer>> multiwordDocs;
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
 	static int maxWordId;
 	static String specificWord;
 	static Apriori apriori;
+	static boolean useMultiwordDocs;
 
 	// INSTRUMENTATION
 	static long instrIndex = 0, instrCommon = 0, instrWords = 0;
@@ -62,9 +63,13 @@ public class FileReader {
 		}
 		if(args[0].equals("Yahoo")){
 			url="/import/html/6111/20091/Proj3-Data/yahoo/";
+			useMultiwordDocs = true;
+			multiwordDocs = new HashMap<Integer, TreeSet<Integer>>();
 			}
 		else if(args[0].equals("20newsgroups")){
 			url="/import/html/6111/20091/Proj3-Data/20newsgroups/";
+			useMultiwordDocs = false;
+			multiwordDocs = null;
 		} else {
 			usage();
 			System.exit(1);
@@ -142,8 +147,11 @@ public class FileReader {
 				String aWord = idWords.get(it.next());
 				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
 			}
-			// Update the multiwordDocs table
-			updateMultiwordDocs(wordsInDoc, docIds.get(aFile));
+			
+			if (useMultiwordDocs) {
+				// Update the multiwordDocs table
+				updateMultiwordDocs(wordsInDoc, docIds.get(aFile));
+			}
 		}
 		maxWordId = wordsPosIndex - 1;
 		
@@ -216,15 +224,19 @@ public class FileReader {
         	}
         	
         	// remove the word from multiwordDocs
-        	for (SortedSet<Integer> pointTo : multiwordDocs.values()) {
-        		pointTo.remove(sPos);
+        	if (useMultiwordDocs) {
+	        	for (SortedSet<Integer> pointTo : multiwordDocs.values()) {
+	        		pointTo.remove(sPos);
+	        	}
         	}
         	
         	// remove the word from table keys
         	wordDocs.remove(sPos);
         	wordIds.remove(s);
         	idWords.remove(sPos);
-        	multiwordDocs.remove(sPos);
+        	if (useMultiwordDocs) {
+        		multiwordDocs.remove(sPos);
+        	}
         	
         	// Output to file COMMON
         	writer.write(s + "\n");

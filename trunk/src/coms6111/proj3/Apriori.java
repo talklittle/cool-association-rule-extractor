@@ -113,7 +113,7 @@ public class Apriori {
 		ArrayList<Itemset> groupCandidates = new ArrayList<Itemset>(); // candidates sharing k-2 prefix
 		Itemset groupPrefix = new Itemset(); // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
 		
-		if (k == 2) {
+		if (k == 2 && multiwordDocs != null) {
 			// Loop through the 1-itemsets, try to combine with all later 1-itemsets
 			// We can use multiwordDocs table
 			for (int i = 0; i < prevL.size() - 1; i++) {
@@ -219,7 +219,7 @@ public class Apriori {
 					
 					pleaseContinue = false;
 					for (Integer idInA : idsInA) {
-						if (!multiwordDocs.get(idInA).contains(bLastId)) {
+						if (multiwordDocs != null && !multiwordDocs.get(idInA).contains(bLastId)) {
 							// the Id you're trying to add does not appear in any docs
 							// with one of the Ids from the first itemset
 //							System.out.println("DEBUG: aprioriGenPrune: idInA="+idInA
