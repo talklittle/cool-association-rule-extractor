@@ -26,6 +26,7 @@ public class Apriori {
 	private HashMap<String, Integer> wordIds;
 	private HashMap<Integer, String> idWords;
 	private HashMap<Integer, Itemset> wordDocs;
+	private HashMap<Integer[], Itemset> multiwordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
 	private HashSet<Integer> smallWordIds = new HashSet<Integer>(); // single words that are not large 1-itemsets
@@ -40,6 +41,7 @@ public class Apriori {
 			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
+			       HashMap<Integer[], Itemset> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
@@ -48,6 +50,7 @@ public class Apriori {
 		wordIds = newWordIds;
 		idWords = newIdWords;
 		wordDocs = newWordDocs;
+		multiwordDocs = newMultiwordDocs;
 		docWords = newDocWords;
 		maxWordId = newMaxWordId;
 		minsup = newMinsup;
@@ -58,13 +61,14 @@ public class Apriori {
 			       HashMap<String, Integer> newWordsPosition,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
+			       HashMap<Integer[], Itemset> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
 			       double newMinconf,
 			       int newMaxWordsPerItemset) {
-		this(newDocumentsPosition, newWordsPosition, newIdWords, newWordDocs, newDocWords,
-				newMaxWordId, newMinsup, newMinconf);
+		this(newDocumentsPosition, newWordsPosition, newIdWords, newWordDocs, newMultiwordDocs, 
+				newDocWords, newMaxWordId, newMinsup, newMinconf);
 		maxWordsPerItemset = newMaxWordsPerItemset;
 	}
 

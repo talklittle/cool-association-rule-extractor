@@ -33,6 +33,7 @@ public class FileReader {
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
+	static HashMap<Integer[], Itemset> multiwordDocs=new HashMap<Integer[], Itemset>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
@@ -136,6 +137,8 @@ public class FileReader {
 				String aWord = idWords.get(it.next());
 				sortedWords.put(aWord, sortedWords.get(aWord) + 1);
 			}
+			// Update the multiwordDocs table
+			updateMultiwordDocs(wordsInDoc, docIds.get(aFile));
 		}
 		maxWordId = wordsPosIndex - 1;
 		instrIndex = System.currentTimeMillis() - instrIndex;
@@ -285,6 +288,7 @@ public class FileReader {
 									  wordIds,
 									  idWords,
 									  wordDocs,
+									  multiwordDocs,
 									  docWords,
 									  maxWordId,
 									  minsup,
@@ -537,6 +541,38 @@ public class FileReader {
     	return documentsPosition;
     }
     
+    public static void updateMultiwordDocs(SortedSet<Integer> wordsInDoc, int docId) {
+		int[] docRange = { Itemset.posToRange(docId) };
+		int[] docBitmask = { Itemset.posToBitmask(docId) };
+		Integer a = null, afterA = null;
+    	for (Iterator<Integer> ita = wordsInDoc.iterator(); ita.hasNext(); /* */) {
+    		if (a == null) {
+    			a = ita.next();
+    			continue;
+    		} else if (afterA == null) {
+    			afterA = ita.next();
+    		} else {
+    			a = afterA;
+    			afterA = ita.next();
+    		}
+    		// Combine id a with all the ids after it
+    		for (Iterator<Integer> itb = wordsInDoc.tailSet(afterA).iterator(); itb.hasNext(); /* */) {
+    			Integer b = itb.next();
+    			Integer[] ab = {a, b};
+    			Arrays.sort(ab);
+    			if (multiwordDocs.containsKey(ab)) {
+    				multiwordDocs.put(ab, multiwordDocs.get(ab).addAndCopy(docRange[0], docBitmask[0]));
+    			} else {
+    				multiwordDocs.put(ab, new Itemset(docRange, docBitmask));
+    			}
+    		}
+    	}
+    }
+    
+    /**
+     * Output large itemsets to a file LARGE in decreasing order of support
+     * @param itemsets
+     */
     public static void outputItemsets(List<List<Itemset>> itemsets) {
     	Itemset[] allLargeItemsets;
     	HashSet<Itemset> tmpLargeItemsets = new HashSet<Itemset>();
