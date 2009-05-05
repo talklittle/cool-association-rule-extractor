@@ -6,12 +6,38 @@ public class Itemset implements Comparable<Itemset> {
 	public int[] ranges;
 	public int[] words; // words[] and ranges[] are same length
 	
+	// CONSTRUCTORS
+	
 	public Itemset() {
 		ranges = new int[0];
 		words = new int[0];
 	}
 	
 	public Itemset(SortedSet<Integer> wordPositions) {
+		TreeMap<Integer, Integer> rangesWords = new TreeMap<Integer, Integer>();
+		int rangeIndex, bitmask;
+		for (Iterator<Integer> it = wordPositions.iterator(); it.hasNext(); /* */) {
+			int i = it.next();
+			rangeIndex = posToRange(i);
+			bitmask = posToBitmask(i);
+			if (rangesWords.containsKey(rangeIndex)) {
+				rangesWords.put(rangeIndex, rangesWords.get(rangeIndex) | bitmask);
+			} else {
+				rangesWords.put(rangeIndex, bitmask);
+			}
+		}
+		ranges = new int[rangesWords.size()];
+		words = new int[rangesWords.size()];
+		int i = 0;
+		for (Iterator<Integer> it = rangesWords.keySet().iterator(); it.hasNext(); /* */) {
+			int num = it.next();
+			ranges[i] = num;
+			words[i] = rangesWords.get(num);
+			i++;
+		}
+	}
+	
+	public Itemset(List<Integer> wordPositions) {
 		TreeMap<Integer, Integer> rangesWords = new TreeMap<Integer, Integer>();
 		int rangeIndex, bitmask;
 		for (Iterator<Integer> it = wordPositions.iterator(); it.hasNext(); /* */) {
@@ -53,6 +79,10 @@ public class Itemset implements Comparable<Itemset> {
 		ranges = Arrays.copyOf(other.ranges, newLength);
 		words = Arrays.copyOf(other.words, newLength);
 	}
+	
+	
+	// END CONSTRUCTORS
+	
 	
 	public int getNumBits() {
 		int returnMe = 0;

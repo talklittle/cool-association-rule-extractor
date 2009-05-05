@@ -110,33 +110,73 @@ public class Apriori {
 		ArrayList<Itemset> groupCandidates = new ArrayList<Itemset>(); // candidates sharing k-2 prefix
 		Itemset groupPrefix = new Itemset(); // holds k-2 prefix (last bit chopped off from large itemsets from prev. round)
 		
-		// Loop through the k-1 itemsets (saved from the previous apriori iteration)
-		// and try to combine itemsets with those that come after,
-		// if they share the same prefix k-2 bits
-		for (Itemset kmin1Itemset : prevL) {
-//			System.out.println("DEBUG: aprioriGen: kmin1Itemset:");
-//			kmin1Itemset.debugPrintWords(idWords);
-			Itemset currPrefix = kmin1Itemset.chopLastBit();
-//			System.out.println("currPrefix:");
-//			currPrefix.debugPrintWords(idWords);
-//			if (kmin1Itemset.getNumWords() != currPrefix.getNumWords() + 1) {
-//				System.err.println("ERROR: aprioriGen: kmin1Itemset #words="
-//						+kmin1Itemset.getNumWords()
-//						+" currPrefix #words="+currPrefix.getNumWords());
-//			}
-			
-			if (!currPrefix.equals(groupPrefix)) {
-				// Try to combine the current group (if it has >= 2 members)
-				newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
-				// Initialize the next group's Set
-				groupPrefix = currPrefix;
-				groupCandidates = new ArrayList<Itemset>();
+		if (k == 2) {
+			// Loop through the 1-itemsets, try to combine with all later 1-itemsets
+			// We can use multiwordDocs table
+			for (int i = 0; i < prevL.size() - 1; i++) {
+				Itemset itsa = prevL.get(i);
+				Integer idA = (itsa.ranges[0] * 32) + Bits.getPosFromLeft(itsa.words[0]);
+				
+				if (smallWordIds.contains(idA)) {
+					// This should not happen if getLarge1Itemsets() is correct!
+					continue;
+				}
+				
+				for (int j = i+1; j < prevL.size(); j++) {
+					Itemset itsb = prevL.get(j);
+					Integer idB = (itsb.ranges[0] * 32) + Bits.getPosFromLeft(itsb.words[0]);
+					Integer[] ab = { idA, idB };
+					Arrays.sort(ab); // just in case
+
+					// Prune
+					Itemset sharedDocs = multiwordDocs.get(ab);
+					if (sharedDocs == null) {
+						// The 2 words don't appear in the same documents
+						System.out.println("DEBUG: aprioriGen: ab={"+ab[0]+","+ab[1]+"} not in multiwordDocs");
+						continue;
+					}
+					if ((double)sharedDocs.getNumBits() / (double)docIds.size() < minsup) {
+						// Not enough documents contain both. i.e., support too low
+						continue;
+					}
+					if (smallWordIds.contains(idB)) {
+						// idB is not a large itemset so give up.
+						// If getLarge1Itemsets() is correct, this should not happen.
+						System.err.println("ERROR: aprioriGen: idB="+idB+" was a Small itemset");
+						continue;
+					}
+					
+					newCandidates.add(new Itemset(Arrays.asList(ab)));
+				}
 			}
-			groupCandidates.add(kmin1Itemset);
+		} else {
+			// Loop through the k-1 itemsets (saved from the previous apriori iteration)
+			// and try to combine itemsets with those that come after,
+			// if they share the same prefix k-2 bits
+			for (Itemset kmin1Itemset : prevL) {
+	//			System.out.println("DEBUG: aprioriGen: kmin1Itemset:");
+	//			kmin1Itemset.debugPrintWords(idWords);
+				Itemset currPrefix = kmin1Itemset.chopLastBit();
+	//			System.out.println("currPrefix:");
+	//			currPrefix.debugPrintWords(idWords);
+	//			if (kmin1Itemset.getNumWords() != currPrefix.getNumWords() + 1) {
+	//				System.err.println("ERROR: aprioriGen: kmin1Itemset #words="
+	//						+kmin1Itemset.getNumWords()
+	//						+" currPrefix #words="+currPrefix.getNumWords());
+	//			}
+				
+				if (!currPrefix.equals(groupPrefix)) {
+					// Try to combine the current group (if it has >= 2 members)
+					newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
+					// Initialize the next group's Set
+					groupPrefix = currPrefix;
+					groupCandidates = new ArrayList<Itemset>();
+				}
+				groupCandidates.add(kmin1Itemset);
+			}
+			
+			newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
 		}
-		
-		newCandidates.addAll(aprioriGenPrune(groupCandidates, prevL, k));
-		
 		// Finally check if newCandidates is empty. If so then the previous set of
 		// large itemsets is the final one.
 		if (newCandidates.size() > 0) {
