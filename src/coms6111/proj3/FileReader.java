@@ -32,8 +32,7 @@ public class FileReader {
 	// Mapping from a word's id# to the Itemset (bitmap) of docs containing it
 	static HashMap<Integer, String> idWords=new HashMap<Integer, String>();
 	static HashMap<Integer, Itemset> wordDocs=new HashMap<Integer, Itemset>();
-	static HashMap<Integer, HashMap<Integer, Itemset>> multiwordDocs
-			= new HashMap<Integer, HashMap<Integer, Itemset>>();
+	static HashMap<Integer, TreeSet<Integer>> multiwordDocs = new HashMap<Integer, TreeSet<Integer>>();
 	static HashMap<Integer, Itemset> docWords=new HashMap<Integer, Itemset>();
 	static HashMap<Itemset, Double> itemsetSupport=new HashMap<Itemset, Double>();
 	static double minsup, minconf;
@@ -215,10 +214,17 @@ public class FileReader {
 //        					+" from transaction "+transactionId);
         		}
         	}
+        	
+        	// remove the word from multiwordDocs
+        	for (SortedSet<Integer> pointTo : multiwordDocs.values()) {
+        		pointTo.remove(sPos);
+        	}
+        	
         	// remove the word from table keys
         	wordDocs.remove(sPos);
         	wordIds.remove(s);
         	idWords.remove(sPos);
+        	multiwordDocs.remove(sPos);
         	
         	// Output to file COMMON
         	writer.write(s + "\n");
@@ -576,8 +582,6 @@ public class FileReader {
     }
     
     public static void updateMultiwordDocs(SortedSet<Integer> wordsInDoc, int docId) {
-		int[] docRange = { Itemset.posToRange(docId) };
-		int[] docBitmask = { Itemset.posToBitmask(docId) };
 		Integer a = null, afterA = null;
     	for (Iterator<Integer> ita = wordsInDoc.iterator(); ita.hasNext(); /* */) {
     		if (a == null) {
@@ -592,19 +596,30 @@ public class FileReader {
     		// Combine id a with all the ids after it
     		for (Iterator<Integer> itb = wordsInDoc.tailSet(afterA).iterator(); itb.hasNext(); /* */) {
     			Integer b = itb.next();
-    			Integer[] ab = {a, b};
-    			Arrays.sort(ab); // Just in case
-    			if (multiwordDocs.containsKey(ab[0])) {
-    				HashMap<Integer, Itemset> tmpa = multiwordDocs.get(ab[0]);
-    				if (tmpa.containsKey(ab[1])) {
-    					tmpa.put(ab[1], tmpa.get(ab[1]).addAndCopy(docRange[0], docBitmask[0]));
-    				} else {
-    					tmpa.put(ab[1], new Itemset(docRange, docBitmask));
-    				}
-    			} else {
-    				HashMap<Integer, Itemset> tmpa = new HashMap<Integer, Itemset>();
-    				tmpa.put(ab[1], new Itemset(docRange, docBitmask));
-    				multiwordDocs.put(ab[0], tmpa);
+//    			Integer[] ab = {a, b};
+//    			Arrays.sort(ab); // Just in case
+    			if (a < b) {
+	    			if (multiwordDocs.containsKey(a)) {
+	    				TreeSet<Integer> tmpa = multiwordDocs.get(a);
+	    				tmpa.add(b);
+//	    				System.out.println("DEBUG: updateMultiwordDocs: a="+a+" add b="+b);
+	    			} else {
+	    				TreeSet<Integer> tmpa = new TreeSet<Integer>();
+	    				tmpa.add(b);
+//	    				System.out.println("DEBUG: updateMultiwordDocs: a="+a+" add b="+b);
+	    				multiwordDocs.put(a, tmpa);
+	    			}
+    			} else if (b < a) {
+	    			if (multiwordDocs.containsKey(b)) {
+	    				TreeSet<Integer> tmpa = multiwordDocs.get(b);
+	    				tmpa.add(a);
+//	    				System.out.println("DEBUG: updateMultiwordDocs: b="+b+" add a="+a);
+	    			} else {
+	    				TreeSet<Integer> tmpa = new TreeSet<Integer>();
+	    				tmpa.add(a);
+	    				multiwordDocs.put(b, tmpa);
+//	    				System.out.println("DEBUG: updateMultiwordDocs: b="+b+" add a="+a);
+	    			}
     			}
 //    			System.out.println("DEBUG: updateMultiwordDocs: added ab={"+a+","+b+"} new numbits="
 //    					+multiwordDocs.get(a).get(b).getNumBits());
