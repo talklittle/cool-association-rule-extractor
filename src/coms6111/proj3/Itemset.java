@@ -348,30 +348,9 @@ public class Itemset implements Comparable<Itemset> {
 	 * @return boolean whether or not the word was in the itemset
 	 */
 	public Itemset removeAndCopy(int rangeId, int bitmask) {
-		int rangePos = getRangePos(rangeId);
-		int newBitmap;
-		int[] newRanges, newWords;
-		if (rangePos == -1) {
-			// Doesn't contain that range
-			return new Itemset(this, ranges.length);
-		}
-		// Unset the bits
-		newBitmap = words[rangePos] & ~bitmask;
-		if (newBitmap == 0) {
-			// Remove this range
-			newRanges = Arrays.copyOf(ranges, ranges.length - 1);
-			newWords = Arrays.copyOf(words, words.length - 1);
-			for (int i = rangePos; i < ranges.length - 1; i++) {
-				newRanges[i] = ranges[i+1];
-				newWords[i] = words[i+1];
-			}
-			return new Itemset(newRanges, newWords);
-		} else {
-			// Return a copy with bits from bitmask unset
-			Itemset returnMe = new Itemset(this, ranges.length);
-			returnMe.words[rangePos] = newBitmap;
-			return returnMe;
-		}
+		Itemset itset = new Itemset(this, this.ranges.length);
+		itset.remove(rangeId, bitmask);
+		return itset;
 	}
 	
 	public List<Integer> getIds() {

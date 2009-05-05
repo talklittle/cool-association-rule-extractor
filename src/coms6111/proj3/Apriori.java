@@ -21,6 +21,7 @@ public class Apriori {
 	private double minsup, minconf;
 	private int maxWordsPerItemset = 0;
 	private int maxWordId;
+	private double threshold; // Number of docs needed to consider a large itemset
 	
 	private HashMap<String, Integer> docIds;
 	private HashMap<String, Integer> wordIds;
@@ -56,6 +57,7 @@ public class Apriori {
 		maxWordId = newMaxWordId;
 		minsup = newMinsup;
 		minconf = newMinconf;
+		threshold = minsup * docIds.size();
 	}
 	
 	public Apriori(HashMap<String, Integer> newDocumentsPosition,
@@ -233,12 +235,7 @@ public class Apriori {
 					}
 					
 					// Pruning based on whether all subsets are part of the k-1 large itemsets
-					int numLargeSubsetsOfCandidate = 0;
-					for (Itemset kmin1Itemset2 : prevL) {
-						if (combined.contains(kmin1Itemset2)) {
-							numLargeSubsetsOfCandidate++;
-						}
-					}
+					int numLargeSubsetsOfCandidate = countMin1Subsets(combined, prevL);
 					if (numLargeSubsetsOfCandidate < combination(k, k-1)) {
 //						System.out.println("DEBUG: aprioriGen: not all subsets are in k-1. k="+k+" num="
 //								+numLargeSubsetsOfCandidate+" expected="+combination(k,k-1));
@@ -310,6 +307,30 @@ public class Apriori {
 		}
 		instrCombineIds = System.currentTimeMillis() - instrCombineIds;
 		return combineIds;
+	}
+	
+	public static int countMin1Subsets(Itemset superset, List<Itemset> goodSubsets) {
+		int count = 0;
+		for (Integer id : superset.getIds()) {
+			Itemset min1 = superset.removeAndCopy(Itemset.posToRange(id), Itemset.posToBitmask(id));
+			int left, mid, right;
+			left = 0;
+			right = goodSubsets.size();
+			// Binary search to find each len-1 subset of superset, in goodSubsets
+			while (left < right) {
+				mid = left + (right - left) / 2;
+				int cmp = min1.compareTo(goodSubsets.get(mid));
+				if (cmp > 0) {
+					left = mid + 1;
+				} else if (cmp < 0) {
+					right = mid;
+				} else {
+					count++;
+					break;
+				}
+			}
+		}
+		return count;
 	}
 	
 	/**
