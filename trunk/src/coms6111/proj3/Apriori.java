@@ -26,7 +26,7 @@ public class Apriori {
 	private HashMap<String, Integer> wordIds;
 	private HashMap<Integer, String> idWords;
 	private HashMap<Integer, Itemset> wordDocs;
-	private HashMap<Integer[], Itemset> multiwordDocs;
+	private HashMap<Integer, HashMap<Integer, Itemset>> multiwordDocs;
 	private HashMap<Integer, Itemset> docWords;
 	
 	private HashSet<Integer> smallWordIds = new HashSet<Integer>(); // single words that are not large 1-itemsets
@@ -41,7 +41,7 @@ public class Apriori {
 			       HashMap<String, Integer> newWordIds,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
-			       HashMap<Integer[], Itemset> newMultiwordDocs,
+			       HashMap<Integer, HashMap<Integer, Itemset>> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
@@ -61,7 +61,7 @@ public class Apriori {
 			       HashMap<String, Integer> newWordsPosition,
 			       HashMap<Integer, String> newIdWords,
 			       HashMap<Integer, Itemset> newWordDocs,
-			       HashMap<Integer[], Itemset> newMultiwordDocs,
+			       HashMap<Integer, HashMap<Integer, Itemset>> newMultiwordDocs,
 			       HashMap<Integer, Itemset> newDocWords,
 			       int newMaxWordId,
 			       double newMinsup,
@@ -129,23 +129,30 @@ public class Apriori {
 					Arrays.sort(ab); // just in case
 
 					// Prune
-					Itemset sharedDocs = multiwordDocs.get(ab);
+					HashMap<Integer, Itemset> tmp = multiwordDocs.get(ab[0]);
+					if (tmp == null) {
+						// idA does not appear in any docs...? Shouldn't happen
+						System.err.println("ERROR: aprioriGen: idA="+ab[0]+" has no entry in multiwordDocs");
+						continue;
+					}
+					Itemset sharedDocs = tmp.get(ab[1]);
 					if (sharedDocs == null) {
 						// The 2 words don't appear in the same documents
-						System.out.println("DEBUG: aprioriGen: ab={"+ab[0]+","+ab[1]+"} not in multiwordDocs");
+//						System.out.println("DEBUG: aprioriGen: ab={"+ab[0]+","+ab[1]+"} not in multiwordDocs");
 						continue;
 					}
 					if ((double)sharedDocs.getNumBits() / (double)docIds.size() < minsup) {
 						// Not enough documents contain both. i.e., support too low
 						continue;
 					}
-					if (smallWordIds.contains(idB)) {
+					if (smallWordIds.contains(ab[1])) {
 						// idB is not a large itemset so give up.
 						// If getLarge1Itemsets() is correct, this should not happen.
-						System.err.println("ERROR: aprioriGen: idB="+idB+" was a Small itemset");
+						System.err.println("ERROR: aprioriGen: idB="+ab[1]+" was a Small itemset");
 						continue;
 					}
 					
+					// Done pruning
 					newCandidates.add(new Itemset(Arrays.asList(ab)));
 				}
 			}
