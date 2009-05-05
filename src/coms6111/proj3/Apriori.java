@@ -18,10 +18,11 @@ import java.util.*;
  */
 public class Apriori {
 	
+	public HashMap<Double, List<Itemset>> supportItemsets = new HashMap<Double, List<Itemset>>(); 
+	
 	private double minsup, minconf;
 	private int maxWordsPerItemset = 0;
 	private int maxWordId;
-	private double threshold; // Number of docs needed to consider a large itemset
 	
 	private HashMap<String, Integer> docIds;
 	private HashMap<String, Integer> wordIds;
@@ -32,7 +33,6 @@ public class Apriori {
 	
 	private HashSet<Integer> smallWordIds = new HashSet<Integer>(); // single words that are not large 1-itemsets
 	
-	private static HashMap<Integer[], Long> combinationTable = new HashMap<Integer[], Long>();
 	private static HashMap<Integer, Long> factorialTable = new HashMap<Integer, Long>();
 	
 	// INSTRUMENTATION
@@ -57,7 +57,6 @@ public class Apriori {
 		maxWordId = newMaxWordId;
 		minsup = newMinsup;
 		minconf = newMinconf;
-		threshold = minsup * docIds.size();
 	}
 	
 	public Apriori(HashMap<String, Integer> newDocumentsPosition,
@@ -145,7 +144,8 @@ public class Apriori {
 //						System.out.println("DEBUG: aprioriGen: ab={"+ab[0]+","+ab[1]+"} not in multiwordDocs");
 						continue;
 					}
-					if ((double)sharedDocs.getNumBits() / (double)docIds.size() < minsup) {
+					double theSup = (double)sharedDocs.getNumBits() / (double)docIds.size();
+					if (theSup < minsup) {
 						// Not enough documents contain both. i.e., support too low
 						continue;
 					}
@@ -157,7 +157,15 @@ public class Apriori {
 					}
 					
 					// Done pruning
-					newCandidates.add(new Itemset(Arrays.asList(ab)));
+					Itemset addMe = new Itemset(Arrays.asList(ab));
+					newCandidates.add(addMe);
+					if (supportItemsets.containsKey(theSup)) {
+						supportItemsets.get(theSup).add(addMe);
+					} else {
+						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
+						newlist.add(addMe);
+						supportItemsets.put(theSup, newlist);
+					}
 				}
 			}
 		} else {
@@ -210,27 +218,25 @@ public class Apriori {
 			Itemset a = null;
 			for (int i = 0; i < groupCandidates.size() - 1; i++) {
 				a = groupCandidates.get(i);
-				int aLastId = (a.ranges[a.ranges.length-1] * 32) 
-					+ Bits.getPosFromLeft(Bits.getLastBit(a.words[a.words.length-1]));
-				SortedSet<Integer> toCombine = getCombineIds(a, aLastId+1);
 				
-				for (Iterator<Integer> it = toCombine.iterator(); it.hasNext(); /* */) {
-					Integer combineId = it.next();
+				for (int j = i+1; j < groupCandidates.size(); j++) {
+					Itemset b = groupCandidates.get(j);
 					
 					// Combine a and b
-					Itemset combined = a.addAndCopy(Itemset.posToRange(combineId),
-							Itemset.posToBitmask(combineId));
+					Itemset combined = a.addAndCopy(b.ranges[b.ranges.length-1],
+							b.words[b.words.length-1]);
 					
 //					System.out.println("DEBUG: aprioriGenPrune combineId="+combineId
 //							+" a, combined (next 2 lines)");
 //					a.debugPrintWords(idWords);
 //					combined.debugPrintWords(idWords);
 					
-					if (FileReader.getItemsetSupport(combined) < minsup) {
+					double theSup = FileReader.getItemsetSupport(combined);
+					if (theSup < minsup) {
 //						System.out.println("DEBUG: aprioriGen: support="+FileReader.getItemsetSupport(combined)
 //								+ " < minsup="+minsup+" for following line:");
 //						combined.debugPrintWords(idWords);
-						System.err.println("ERROR: Trying to add itemset k="+k+" with insufficient support="+FileReader.getItemsetSupport(combined));
+//						System.err.println("ERROR: Trying to add itemset k="+k+" with insufficient support="+FileReader.getItemsetSupport(combined));
 						continue;
 					}
 					
@@ -245,6 +251,13 @@ public class Apriori {
 					
 					// Survived pruning so add to newCandidates
 					newCandidates.add(combined);
+					if (supportItemsets.containsKey(theSup)) {
+						supportItemsets.get(theSup).add(combined);
+					} else {
+						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
+						newlist.add(combined);
+						supportItemsets.put(theSup, newlist);
+					}
 //					System.out.println("DEBUG: aprioriGen: added new candidate:");
 //					combined.debugPrintWords(idWords);
 				}
@@ -257,56 +270,6 @@ public class Apriori {
 //				+" returning "+newCandidates.size()+" new large itemsets");
 		
 		return newCandidates;
-	}
-	
-	public SortedSet<Integer> getCombineIds(Itemset initial, int minimumId) {
-		
-		instrCombineIds = System.currentTimeMillis() - instrCombineIds;
-		instrCombineIdsCount++;
-		
-		SortedSet<Integer> combineIds = new TreeSet<Integer>();
-		Itemset docsWithInitial;
-		
-		double threshold = minsup * (double)docIds.size();
-//		Integer largestLtThreshold = 0; // Largest word count less than threshold
-		
-		if (initial.getNumBits() == 2) {
-			// We can use multiwordDocs
-			Integer a = initial.ranges[0]*32 + Bits.getPosFromLeft(Bits.getFirstBit(initial.words[0]));
-			Integer b = initial.ranges[initial.ranges.length-1]*32
-					+ Bits.getPosFromLeft(Bits.getLastBit(initial.words[initial.words.length-1]));
-			Integer[] ab = { a, b };
-			Arrays.sort(ab); // Just in case
-			HashMap<Integer, Itemset> tmp = multiwordDocs.get(ab[0]);
-			if (tmp == null) {
-				// A is not in any documents with other words. This should not happen.
-				System.err.println("ERROR: getCombineIds: no multiwordDocs for a="+ab[0]);
-				instrCombineIds = System.currentTimeMillis() - instrCombineIds;
-				return combineIds;
-			}
-			docsWithInitial = tmp.get(ab[1]);
-			if (docsWithInitial == null) {
-				// A and B do not share any docs. This should not happen since A and B are large 2-itemset
-				System.err.println("ERROR: getCombineIds: no multiwordDocs for ab={"+ab[0]+","+ab[1]+"}");
-			}
-		} else {
-			// Presumably slower than the above block; use with k >= 4 (not in this prog!)
-			System.err.println("WARN: getCombineIds: unexpected conditional branch");
-			docsWithInitial = initial.getDocIdsIntersection(wordDocs);
-		}
-		for (Integer wordId = minimumId; wordId <= maxWordId; wordId++) {
-			if (smallWordIds.contains(wordId) || !wordDocs.containsKey(wordId)) {
-				// Ignore word Ids below a minimum Id (preserve ordering)
-				// and ignore COMMON words
-				continue;
-			}
-			Itemset intersectionOfDocs = docsWithInitial.intersect(wordDocs.get(wordId));
-			if (intersectionOfDocs.getNumBits() >= threshold) {
-				combineIds.add(wordId);
-			}
-		}
-		instrCombineIds = System.currentTimeMillis() - instrCombineIds;
-		return combineIds;
 	}
 	
 	public static int countMin1Subsets(Itemset superset, List<Itemset> goodSubsets) {
@@ -384,4 +347,36 @@ public class Apriori {
 		Arrays.sort(tmp);
 		return Arrays.asList(tmp);
 	}
+	
+//	public static class ItemsetWithSupport implements Comparable<ItemsetWithSupport> {
+//		public Itemset itemset;
+//		public double support;
+//		private int hashcode;
+//		private static int codes = 0;
+//		
+//		public ItemsetWithSupport(Itemset it, double sup) {
+//			itemset = it;
+//			support = sup;
+//			hashcode = codes++;
+//		}
+//		
+//		/**
+//		 * Higher support comes first. i.e., always sort in decreasing order
+//		 */
+//		public int compareTo(ItemsetWithSupport o) {
+//			if (this.support > o.support)
+//				return -1;
+//			if (this.support < o.support)
+//				return 1;
+//			return 0;
+//		}
+//		
+//		public boolean equals(ItemsetWithSupport o) {
+//			return this.hashCode() == o.hashCode();
+//		}
+//		
+//		public int hashCode() {
+//			return hashcode;
+//		}
+//	}
 }
