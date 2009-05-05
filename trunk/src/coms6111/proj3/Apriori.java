@@ -159,13 +159,13 @@ public class Apriori {
 					// Done pruning
 					Itemset addMe = new Itemset(Arrays.asList(ab));
 					newCandidates.add(addMe);
-					if (supportItemsets.containsKey(theSup)) {
-						supportItemsets.get(theSup).add(addMe);
-					} else {
-						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
-						newlist.add(addMe);
-						supportItemsets.put(theSup, newlist);
-					}
+//					if (supportItemsets.containsKey(theSup)) {
+//						supportItemsets.get(theSup).add(addMe);
+//					} else {
+//						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
+//						newlist.add(addMe);
+//						supportItemsets.put(theSup, newlist);
+//					}
 				}
 			}
 		} else {
@@ -251,13 +251,13 @@ public class Apriori {
 					
 					// Survived pruning so add to newCandidates
 					newCandidates.add(combined);
-					if (supportItemsets.containsKey(theSup)) {
-						supportItemsets.get(theSup).add(combined);
-					} else {
-						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
-						newlist.add(combined);
-						supportItemsets.put(theSup, newlist);
-					}
+//					if (supportItemsets.containsKey(theSup)) {
+//						supportItemsets.get(theSup).add(combined);
+//					} else {
+//						ArrayList<Itemset> newlist = new ArrayList<Itemset>();
+//						newlist.add(combined);
+//						supportItemsets.put(theSup, newlist);
+//					}
 //					System.out.println("DEBUG: aprioriGen: added new candidate:");
 //					combined.debugPrintWords(idWords);
 				}
